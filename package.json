@@ -4,11 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "ws": "node server.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run ws\"",
     "build": "next build",
     "start": "next start",
-    "start:all": "concurrently \"npm start\" \"npm run ws\"",
     "lint": "eslint",
     "setup": "node scripts/setup.js"
   },
