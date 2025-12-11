@@ -323,35 +323,16 @@ export default function ServerChat() {
     e.preventDefault();
     if (!messageInput.trim() || !currentUser || !serverId || !channelId || !token) return;
 
-    // Fetch full profile from API to ensure we have all fields
-    let fullUser = currentUser;
-    if (!currentUser.username || !currentUser.avatar) {
-      try {
-        const res = await fetch("/api/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          console.log("📋 Profile API response:", data);
-          if (data.user) {
-            fullUser = data.user;
-            setCurrentUser(fullUser);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      }
-    }
-
-    // Double-check we have required fields
-    if (!fullUser.username || !fullUser.avatar) {
-      console.warn("⚠️ Profile incomplete:", fullUser);
-      return;
-    }
+    // Build message author with guaranteed fields
+    const messageAuthor: User = {
+      id: currentUser.id,
+      username: currentUser.username || currentUser.id, // Fallback to id if username missing
+      avatar: currentUser.avatar || `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(currentUser.id)}`, // Generate default avatar
+    };
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      author: fullUser,
+      author: messageAuthor,
       content: messageInput,
       timestamp: new Date().toISOString(),
     };
