@@ -272,15 +272,33 @@ export default function ServerChat() {
         );
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log("📩 WS message received:", data);
           
           if (data?.type === "message" && data?.channel === `${serverId}-${channelId}`) {
-            const incoming: Message = data.message;
+            let incoming: Message = data.message;
             console.log("✨ Message object:", incoming);
             console.log("✨ Author:", incoming.author);
+            
+            // If author is incomplete (only has id), resolve full profile
+            if (incoming.author && !incoming.author.username) {
+              console.log("🔍 Author incomplete, resolving profile for:", incoming.author.id);
+              const fullProfile = await resolveUserProfile(incoming.author.id);
+              if (fullProfile) {
+                incoming.author = fullProfile;
+                console.log("✅ Author resolved:", incoming.author);
+              } else {
+                // Fallback: use ID as username and generate avatar
+                incoming.author = {
+                  id: incoming.author.id,
+                  username: incoming.author.id,
+                  avatar: `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(incoming.author.id)}`,
+                };
+                console.log("⚠️ Author resolved with fallback:", incoming.author);
+              }
+            }
             
             setServers((prev) =>
               prev.map((s) =>
