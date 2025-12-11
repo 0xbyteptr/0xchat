@@ -9,18 +9,28 @@ import { User } from "@/lib/types";
 // Decode JWT payload client-side to restore session user
 const decodeUserFromToken = (token: string): User | null => {
   try {
-    const parts = token.split(".");
+    // Validate token exists and is a string
+    if (!token || typeof token !== "string") {
+      console.warn("Invalid token: token is empty or not a string");
+      return null;
+    }
+
+    // Trim whitespace
+    const trimmedToken = token.trim();
+    
+    const parts = trimmedToken.split(".");
     if (parts.length !== 3) {
-      console.error("Invalid token format: expected 3 parts, got", parts.length);
+      console.warn("Invalid token format: expected 3 parts (header.payload.signature), got", parts.length);
       return null;
     }
     
+    // Decode payload - add padding if needed for base64
     const payload = JSON.parse(atob(parts[1]));
     console.log("Decoded token payload:", payload);
     
     // Check if we have the required fields
     if (!payload?.id || !payload?.username) {
-      console.error("Missing required fields in token. id:", payload?.id, "username:", payload?.username);
+      console.warn("Missing required fields in token. id:", payload?.id, "username:", payload?.username);
       return null;
     }
     
@@ -31,7 +41,11 @@ const decodeUserFromToken = (token: string): User | null => {
       avatar: payload.avatar || "😸", // Default avatar if not in token
     };
   } catch (err) {
-    console.error("Failed to decode token:", err);
+    console.warn("Failed to decode token - clearing invalid token:", err);
+    // Clear the invalid token from localStorage
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem("authToken");
+    }
     return null;
   }
 };

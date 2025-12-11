@@ -52,24 +52,31 @@ export function useAuth() {
     if (typeof window !== "undefined") {
       const storedToken = localStorage.getItem("authToken") || readCookieToken();
       if (storedToken) {
+        console.log("Token found in storage, validating...");
         // Validate token by trying a simple API call
         validateToken(storedToken)
           .then((isValid: boolean) => {
             if (isValid) {
+              console.log("Token is valid, setting token state");
               setToken(storedToken);
             } else {
               // Token is invalid, clear it
+              console.warn("Token validation failed, clearing token");
               setToken(null);
               localStorage.removeItem("authToken");
               document.cookie = "authToken=; path=/; max-age=0;";
             }
           })
-          .catch(() => {
+          .catch((err) => {
             // On error, clear the token to allow re-login
+            console.warn("Token validation error, clearing token:", err);
             setToken(null);
             localStorage.removeItem("authToken");
             document.cookie = "authToken=; path=/; max-age=0;";
           });
+      } else {
+        console.log("No token found in storage");
+        setToken(null);
       }
     }
   }, []);
