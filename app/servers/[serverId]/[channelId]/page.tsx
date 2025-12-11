@@ -34,13 +34,9 @@ const decodeUserFromToken = (token: string): User | null => {
   }
 };
 
-// Construct WebSocket URL dynamically based on current location
-const getWebSocketURL = (): any => {
-  if (typeof window === "undefined") {
-    return "ws://localhost:3002";
-  }
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsHost = env.NEXT_PUBLIC_WS_URL || `${protocol}//${window.location.host}`;
+// Construct WebSocket URL - always use production WebSocket domain
+const getWebSocketURL = (): string => {
+  return "wss://ws.byteptr.xyz/";
 };
 
 export default function ServerChat() {
