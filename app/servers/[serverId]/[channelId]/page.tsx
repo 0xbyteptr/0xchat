@@ -332,6 +332,7 @@ export default function ServerChat() {
         });
         if (res.ok) {
           const data = await res.json();
+          console.log("📋 Profile API response:", data);
           if (data.user) {
             fullUser = data.user;
             setCurrentUser(fullUser);
@@ -344,7 +345,7 @@ export default function ServerChat() {
 
     // Double-check we have required fields
     if (!fullUser.username || !fullUser.avatar) {
-      console.warn("⚠️ Profile incomplete, cannot send message");
+      console.warn("⚠️ Profile incomplete:", fullUser);
       return;
     }
 
