@@ -56,8 +56,10 @@ export default function ServerChat() {
 
   // Server state
   const [servers, setServers] = useState<Server[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  const [serverError, setServerError] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [viewProfileUser, setViewProfileUser] = useState<User | null>(null);
@@ -350,12 +352,15 @@ export default function ServerChat() {
   }, [isLoggedIn, currentUser, serverId, channelId, setServers]);
 
   const handleCreateServer = async (name: string, description: string) => {
+    setServerError("");
     const newServer = await createServer(name, description);
     if (newServer) {
       setServers([...servers, newServer]);
       router.push(`/servers/${newServer.id}/${newServer.channels[0].id}`);
-      setIsModalOpen(false);
+      setIsCreateServerModalOpen(false);
       return newServer;
+    } else {
+      setServerError("Failed to create server. Please try again.");
     }
     return null;
   };
@@ -368,7 +373,7 @@ export default function ServerChat() {
       setServers([...servers, server]);
       router.push(`/servers/${server.id}/${server.channels[0].id}`);
       setInviteCode("");
-      setIsModalOpen(false);
+      setIsCreateServerModalOpen(false);
     }
   };
 
@@ -510,7 +515,7 @@ export default function ServerChat() {
         servers={servers}
         selectedServerId={serverId}
         onServerSelect={handleServerSelect}
-        onCreateClick={() => setIsModalOpen(true)}
+        onCreateClick={() => setIsCreateServerModalOpen(true)}
       />
 
       {/* Chat Area */}
@@ -534,7 +539,7 @@ export default function ServerChat() {
           onAvatarClick={handleAvatarClick}
           onProfileClick={() => setIsProfileOpen(true)}
           onLogout={handleLogout}
-          onShowInvite={() => setIsModalOpen(true)}
+          onShowInvite={() => setIsInviteModalOpen(true)}
           onShowOverview={() => setIsOverviewOpen(true)}
           serverMembers={serverMembers}
         />
@@ -568,7 +573,7 @@ export default function ServerChat() {
             </div>
 
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsCreateServerModalOpen(true)}
               className="px-8 py-4 bg-linear-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-pink-500/50"
             >
               ✨ Create Your First Server
@@ -579,20 +584,22 @@ export default function ServerChat() {
 
       {/* Create/Join Server Modal */}
       <CreateServerModal
-        isOpen={isModalOpen}
+        isOpen={isCreateServerModalOpen}
         isLoading={isServerLoading}
+        serverError={serverError}
         onClose={() => {
-          setIsModalOpen(false);
+          setIsCreateServerModalOpen(false);
           setInviteCode("");
+          setServerError("");
         }}
         onCreate={handleCreateServer}
         onJoinClick={handleJoinServer}
       />
 
       <InviteModal
-        isOpen={isModalOpen && !!selectedServer}
+        isOpen={isInviteModalOpen && !!selectedServer}
         server={selectedServer}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => setIsInviteModalOpen(false)}
         onCreateInvite={handleCreateInvite}
       />
 

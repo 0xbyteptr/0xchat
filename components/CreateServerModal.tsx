@@ -6,6 +6,7 @@ import { Server } from "@/lib/types";
 interface CreateServerModalProps {
   isOpen: boolean;
   isLoading: boolean;
+  serverError?: string;
   onClose: () => void;
   onCreate: (name: string, description: string) => Promise<Server | null>;
   onJoinClick?: (inviteCode: string) => void;
@@ -14,6 +15,7 @@ interface CreateServerModalProps {
 export default function CreateServerModal({
   isOpen,
   isLoading,
+  serverError,
   onClose,
   onCreate,
   onJoinClick,
