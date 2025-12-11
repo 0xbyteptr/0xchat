@@ -321,12 +321,18 @@ export default function ServerChat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !currentUser || !serverId) return;
+    if (!messageInput.trim() || !currentUser || !serverId || !channelId) return;
 
-    // Ensure currentUser has username and avatar loaded
-    if (!currentUser.username) {
-      console.warn("⚠️ currentUser missing username, profile not loaded yet");
-      return;
+    // Ensure full user profile is loaded
+    if (!currentUser.username || !currentUser.avatar) {
+      console.warn("⚠️ Profile not fully loaded yet. Waiting...");
+      // Try to load profile if missing
+      const full = await loadProfile();
+      if (!full?.username || !full?.avatar) {
+        alert("Profile still loading. Please try again.");
+        return;
+      }
+      setCurrentUser(full);
     }
 
     const newMessage: Message = {
