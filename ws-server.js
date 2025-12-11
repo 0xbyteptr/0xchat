@@ -2,16 +2,54 @@
 /**
  * Real-time WebSocket server for catboychat
  * Handles message broadcasting by channel
+ * Also listens for HTTP POST requests to /broadcast
  * Run: node ws-server.js
  */
 
 const { WebSocketServer } = require("ws");
 const http = require("http");
+const url = require("url");
 
 const WS_PORT = process.env.WS_PORT || 3002;
 
 // Create HTTP server
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  // Handle /broadcast POST endpoint
+  if (req.method === "POST" && req.url === "/broadcast") {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const { type, channel, message } = data;
+        
+        console.log(`📡 HTTP broadcast to ${channel}:`, message);
+        
+        // Broadcast to all subscribers in that channel
+        const subscribers = channelSubscriptions.get(channel);
+        if (subscribers) {
+          subscribers.forEach((ws) => {
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type, channel, message }));
+            }
+          });
+        }
+        
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        console.error("Broadcast parse error:", err);
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+      }
+    });
+  } else {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+});
 
 // Create WebSocket server
 const wss = new WebSocketServer({ server });
@@ -92,6 +130,7 @@ wss.on("connection", (ws) => {
 
 server.listen(WS_PORT, "0.0.0.0", () => {
   console.log(`🚀 Real-time WebSocket server running on port ${WS_PORT}`);
+  console.log(`📡 HTTP broadcast endpoint: POST http://localhost:${WS_PORT}/broadcast`);
 });
 
 process.on("SIGINT", () => {
