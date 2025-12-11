@@ -321,23 +321,36 @@ export default function ServerChat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !currentUser || !serverId || !channelId) return;
+    if (!messageInput.trim() || !currentUser || !serverId || !channelId || !token) return;
 
-    // Ensure full user profile is loaded
+    // Fetch full profile from API to ensure we have all fields
+    let fullUser = currentUser;
     if (!currentUser.username || !currentUser.avatar) {
-      console.warn("⚠️ Profile not fully loaded yet. Waiting...");
-      // Try to load profile if missing
-      const full = await loadProfile();
-      if (!full?.username || !full?.avatar) {
-        alert("Profile still loading. Please try again.");
-        return;
+      try {
+        const res = await fetch("/api/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            fullUser = data.user;
+            setCurrentUser(fullUser);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
       }
-      setCurrentUser(full);
+    }
+
+    // Double-check we have required fields
+    if (!fullUser.username || !fullUser.avatar) {
+      console.warn("⚠️ Profile incomplete, cannot send message");
+      return;
     }
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      author: currentUser,
+      author: fullUser,
       content: messageInput,
       timestamp: new Date().toISOString(),
     };
