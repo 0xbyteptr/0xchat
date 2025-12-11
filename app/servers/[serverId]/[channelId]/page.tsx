@@ -14,6 +14,7 @@ import { useMessages } from "@/lib/messages";
 import { useServers } from "@/lib/servers";
 import { useProfile } from "@/lib/profile";
 import { User, Message, Channel, Server } from "@/lib/types";
+import { env } from "process";
 
 // Decode JWT payload client-side to restore session user
 const decodeUserFromToken = (token: string): User | null => {
@@ -36,11 +37,12 @@ const decodeUserFromToken = (token: string): User | null => {
 // Construct WebSocket URL dynamically based on current location
 const getWebSocketURL = (): string => {
   if (typeof window === "undefined") {
-    return "ws://localhost:3001";
+    return "ws://localhost:3002";
   }
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.host;
-  return `${protocol}//${host}/api/ws`;
+  const hostname = window.location.hostname;
+  // Use dedicated WebSocket endpoint on same domain
+  return `${protocol}//${hostname}:${env.WS_PORT || "3002"}`;
 };
 
 export default function ServerChat() {
