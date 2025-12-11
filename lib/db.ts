@@ -272,6 +272,46 @@ class JSONDatabase {
     }
   }
 
+  getDMConversations(userId: string): { otherUserId: string; messages: DM[] }[] {
+    try {
+      this.ensureDataDir();
+      if (!fs.existsSync(this.dmsFile)) return [];
+
+      const data: DMsData = JSON.parse(fs.readFileSync(this.dmsFile, 'utf-8'));
+      const { decryptMessage } = require('./crypto');
+
+      const conversations: { otherUserId: string; messages: DM[] }[] = [];
+
+      Object.entries(data).forEach(([key, msgs]) => {
+        const [a, b] = key.split('-');
+        if (a !== userId && b !== userId) return;
+
+        const otherUserId = a === userId ? b : a;
+
+        const decrypted = msgs.map((dm: any) => {
+          if (dm.content && dm.iv && dm.tag) {
+            try {
+              return {
+                ...dm,
+                content: decryptMessage({ iv: dm.iv, encrypted: dm.content, tag: dm.tag }),
+              };
+            } catch {
+              return dm;
+            }
+          }
+          return dm;
+        });
+
+        conversations.push({ otherUserId, messages: decrypted });
+      });
+
+      return conversations;
+    } catch (error) {
+      console.error('Error reading DM conversations:', error);
+      return [];
+    }
+  }
+
   // Friend Invites
   getFriendInvites(userId: string): FriendInvite[] {
     try {
@@ -657,6 +697,7 @@ abstract class Database {
   // Direct messages
   abstract getDMs(userId1: string, userId2: string): DM[];
   abstract addDM(userId1: string, userId2: string, dm: DM): DM;
+  abstract getDMConversations(userId: string): { otherUserId: string; messages: DM[] }[];
   // Friend invites
   abstract getFriendInvites(userId: string): FriendInvite[];
   abstract addFriendInvite(invite: FriendInvite): FriendInvite;

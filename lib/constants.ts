@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   MESSAGES: "/api/messages",
   FRIEND_INVITES: "/api/friend/invite",
   PROFILE: "/api/profile",
+  DMS: "/api/dms",
 } as const;
 
 // Error messages

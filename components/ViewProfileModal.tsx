@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { User } from "@/lib/types";
 
 interface ViewProfileModalProps {
@@ -45,6 +46,22 @@ export default function ViewProfileModal({ isOpen, user, onClose }: ViewProfileM
               <p className="text-xs text-green-400 mt-1">{user.status}</p>
             ) : null}
           </div>
+        </div>
+
+        <div className="flex gap-3 mb-4">
+          <Link
+            href={`/dms?user=${encodeURIComponent(user.username)}`}
+            className="flex-1 px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition"
+            onClick={onClose}
+          >
+            Message
+          </Link>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-slate-200 text-sm font-semibold hover:bg-slate-600 transition"
+          >
+            Close
+          </button>
         </div>
 
         {user.bio ? (

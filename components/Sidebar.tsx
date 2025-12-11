@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { User, Channel, Server } from "@/lib/types";
 import { UserCircle, LogOut, Send } from "lucide-react";
 
