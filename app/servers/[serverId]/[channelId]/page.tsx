@@ -239,7 +239,8 @@ export default function ServerChat() {
           
           if (data?.type === "message" && data?.channel === `${serverId}-${channelId}`) {
             const incoming: Message = data.message;
-            console.log("✨ Adding message to channel:", incoming);
+            console.log("✨ Message object:", incoming);
+            console.log("✨ Author:", incoming.author);
             
             setServers((prev) =>
               prev.map((s) =>
@@ -321,6 +322,12 @@ export default function ServerChat() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || !currentUser || !serverId) return;
+
+    // Ensure currentUser has username and avatar loaded
+    if (!currentUser.username) {
+      console.warn("⚠️ currentUser missing username, profile not loaded yet");
+      return;
+    }
 
     const newMessage: Message = {
       id: Date.now().toString(),
