@@ -23,30 +23,17 @@ function resolvePort(): number {
 
 const WS_PORT = resolvePort();
 let wss: any = null;
-let initInProgress = false;
 
 function ensureServer() {
-  if (wss || initInProgress) return wss;
-  
-  try {
-    initInProgress = true;
-    wss = new WebSocketServer({ port: WS_PORT });
-    console.log(`🔌 WebSocket server listening on port ${WS_PORT}`);
-    wss.on("connection", (socket: any) => {
-      socket.on("message", (data: any) => {
-        // simple echo/broadcast
-        broadcast(data.toString());
-      });
+  if (wss) return wss;
+  wss = new WebSocketServer({ port: WS_PORT });
+  console.log(`🔌 WebSocket server listening on port ${WS_PORT}`);
+  wss.on("connection", (socket: any) => {
+    socket.on("message", (data: any) => {
+      // simple echo/broadcast
+      broadcast(data.toString());
     });
-  } catch (err: any) {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`⚠️  WebSocket port ${WS_PORT} already in use, reusing existing server`);
-    } else {
-      console.error('WebSocket server error:', err);
-    }
-  } finally {
-    initInProgress = false;
-  }
+  });
   return wss;
 }
 
