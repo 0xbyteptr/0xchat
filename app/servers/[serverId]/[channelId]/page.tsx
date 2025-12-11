@@ -34,9 +34,12 @@ const decodeUserFromToken = (token: string): User | null => {
   }
 };
 
-// Construct WebSocket URL - always use production WebSocket domain
+// Construct WebSocket URL - proxied through nginx via ws.byteptr.xyz domain
 const getWebSocketURL = (): string => {
-  return "wss://ws.byteptr.xyz/";
+  if (typeof window === "undefined") return "";
+  // Always use ws.byteptr.xyz for WebSocket (nginx proxies to port 3002)
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//ws.byteptr.xyz/`;
 };
 
 export default function ServerChat() {
@@ -74,6 +77,12 @@ export default function ServerChat() {
 
   // Track if we've already attempted redirect to avoid loops
   const hasCheckedAuth = useRef(false);
+
+  // Debug logging for currentUser and profile states
+  useEffect(() => {
+    console.log("🧑 CurrentUser:", currentUser);
+    console.log("👤 Profile:", profile);
+  }, [currentUser, profile]);
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -323,18 +332,30 @@ export default function ServerChat() {
     e.preventDefault();
     if (!messageInput.trim() || !serverId || !channelId || !token) return;
 
-    // Use profile from hook (always has full data) fallback to currentUser
-    const author = profile || currentUser;
+    // Ensure we have full user data - if profile not loaded, load it now
+    let author = profile || currentUser;
+    
+    // If still no profile loaded, attempt to load it synchronously
+    if (!author || !author.username) {
+      console.warn("⚠️ Profile not loaded, attempting fresh load...");
+      const freshProfile = await loadProfile();
+      author = freshProfile || currentUser;
+    }
+    
     if (!author) {
       console.warn("⚠️ No user profile available");
       return;
     }
 
+    console.log("🔍 Author before message creation:", author);
+
     const messageAuthor: User = {
-      id: author.id,
-      username: author.username || author.id,
-      avatar: author.avatar || `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(author.id)}`,
+      id: author.id || author.username || "unknown",
+      username: author.username || author.id || "unknown",
+      avatar: author.avatar || `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(author.username || author.id || "unknown")}`,
     };
+    
+    console.log("✍️ Message author being sent:", messageAuthor);
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -371,13 +392,13 @@ export default function ServerChat() {
 
     // Send via websocket if connected
     if (wsRef.current && wsRef.current.readyState === 1) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: "message",
-          channel: `${serverId}-${channelId}`,
-          message: newMessage,
-        })
-      );
+      const wsPayload = {
+        type: "message",
+        channel: `${serverId}-${channelId}`,
+        message: newMessage,
+      };
+      console.log("📤 Sending via WebSocket:", wsPayload);
+      wsRef.current.send(JSON.stringify(wsPayload));
     }
 
     setMessageInput("");
