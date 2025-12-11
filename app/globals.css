@@ -177,9 +177,3 @@ body > div:first-child {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-

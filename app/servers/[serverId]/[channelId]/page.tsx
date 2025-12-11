@@ -33,7 +33,15 @@ const decodeUserFromToken = (token: string): User | null => {
   }
 };
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
+// Construct WebSocket URL dynamically based on current location
+const getWebSocketURL = (): string => {
+  if (typeof window === "undefined") {
+    return "ws://localhost:3001";
+  }
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  return `${protocol}//${host}/api/ws`;
+};
 
 export default function ServerChat() {
   const router = useRouter();
@@ -215,10 +223,10 @@ export default function ServerChat() {
     if (wsRef.current) return;
 
     try {
-      const ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(getWebSocketURL());
 
       ws.onopen = () => {
-        console.log("WS connected", WS_URL);
+        console.log("WS connected to WebSocket");
       };
 
       ws.onmessage = (event) => {
