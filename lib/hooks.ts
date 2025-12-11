@@ -83,10 +83,12 @@ export function useAuth() {
 
   // Save token to localStorage and cookie
   const saveToken = useCallback((newToken: string) => {
+    console.log("Saving token:", newToken.substring(0, 50) + "...");
     setToken(newToken);
     if (typeof window !== "undefined") {
       localStorage.setItem("authToken", newToken);
       document.cookie = `authToken=${encodeURIComponent(newToken)}; path=/; max-age=${7 * 24 * 60 * 60}; sameSite=Lax; secure=${location.protocol === "https:"}`;
+      console.log("Token saved to localStorage and cookie");
     }
   }, []);
 
@@ -183,8 +185,11 @@ export function useAuth() {
         const authData = data as AuthResponse;
         if (!authData?.token) {
           setAuthError("Server error: No token received");
+          console.error("No token in register response:", authData);
           return null;
         }
+
+        console.log("Register response token:", authData.token.substring(0, 50) + "...");
 
         if (!authData.user) {
           setAuthError("Server error: No user data received");
