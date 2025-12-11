@@ -20,12 +20,28 @@ async function parseJsonSafe(response: Response) {
 
 async function validateToken(token: string): Promise<boolean> {
   try {
-    const response = await fetch(API_ENDPOINTS.PROFILE, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.status === 200;
+    // Decode and check if token is expired (simple JWT validation)
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+
+    // Decode payload (browser-compatible)
+    const payload = parts[1];
+    const decoded = JSON.parse(
+      decodeURIComponent(
+        atob(payload)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      )
+    );
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Check if token is expired
+    if (decoded.exp && decoded.exp < now) {
+      return false;
+    }
+    
+    return true;
   } catch {
     return false;
   }

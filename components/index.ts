@@ -1,5 +1,6 @@
 // Re-export all components for convenience
 export { default as LoginForm } from "./LoginForm";
+export { default as LoginPage } from "./LoginPage";
 export { default as Sidebar } from "./Sidebar";
 export { default as ChatHeader } from "./ChatHeader";
 export { default as MessagesList } from "./MessagesList";

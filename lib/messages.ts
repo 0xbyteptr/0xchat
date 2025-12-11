@@ -30,25 +30,34 @@ export function useMessages(token: string | null) {
 
         const decrypted = await Promise.all(
           messages.map(async (msg: any) => {
-            let content = msg.content;
-            if (MESSAGE_KEY && msg.iv && msg.tag && typeof msg.content === "string") {
-              const maybe = await decryptMessageIfPossible({
-                encrypted: msg.content,
-                iv: msg.iv,
-                tag: msg.tag,
-                keyHex: MESSAGE_KEY,
-              });
-              if (maybe) content = maybe;
-            }
+            try {
+              let content = msg.content || "";
+              if (MESSAGE_KEY && msg.iv && msg.tag && typeof msg.content === "string") {
+                try {
+                  const maybe = await decryptMessageIfPossible({
+                    encrypted: msg.content,
+                    iv: msg.iv,
+                    tag: msg.tag,
+                    keyHex: MESSAGE_KEY,
+                  });
+                  if (maybe) content = maybe;
+                } catch (decryptErr) {
+                  console.warn("Decryption failed, using original content");
+                }
+              }
 
-            return {
-              ...msg,
-              content,
-              timestamp:
-                typeof msg.timestamp === "string"
-                  ? new Date(msg.timestamp)
-                  : msg.timestamp,
-            } as Message;
+              return {
+                ...msg,
+                content,
+                timestamp:
+                  typeof msg.timestamp === "string"
+                    ? new Date(msg.timestamp)
+                    : msg.timestamp,
+              } as Message;
+            } catch (err) {
+              console.error("Error processing message:", err);
+              return msg as Message;
+            }
           })
         );
 

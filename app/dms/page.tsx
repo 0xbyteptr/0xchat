@@ -1,193 +1,170 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks";
-import { useServers } from "@/lib/servers";
-import { Server, User } from "@/lib/types";
 import DMList from "@/components/DMList";
 import DMChat from "@/components/DMChat";
 import ServerList from "@/components/ServerList";
+import NewDMModal from "@/components/NewDMModal";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 
-function DMsPageContent() {
+export default function DMsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
   const { token, loadToken } = useAuth();
-  const { listServers, createServer } = useServers(token);
-  const [selectedPartner, setSelectedPartner] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [servers, setServers] = useState<Server[]>([]);
-  const [serversLoading, setServersLoading] = useState(false);
-  const [autoLoadedPartner, setAutoLoadedPartner] = useState<string | null>(null);
-  const hasRedirectedToLogin = useRef(false);
-  const ensuredConversations = useRef<Set<string>>(new Set());
-
-  const loadServers = async () => {
-    if (!token) return;
-    setServersLoading(true);
-    const data = await listServers();
-    setServers(data);
-    setServersLoading(false);
-  };
-
-  const ensureConversation = async (partnerId: string) => {
-    if (!token || !partnerId) return;
-    if (ensuredConversations.current.has(partnerId)) return;
-    ensuredConversations.current.add(partnerId);
-
-    try {
-      await fetch("/api/dms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ to: partnerId, content: "" }),
-      });
-    } catch (err) {
-      console.error("Failed to auto-create DM", err);
-    }
-  };
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>("");
+  const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>("");
+  const [isNewDMModalOpen, setIsNewDMModalOpen] = useState(false);
+  const [servers, setServers] = useState<any[]>([]);
 
   useEffect(() => {
     loadToken();
-    // allow token validation to complete
     const timer = setTimeout(() => setAuthReady(true), 150);
     return () => clearTimeout(timer);
   }, [loadToken]);
 
+  // Decode current user from token
   useEffect(() => {
-    if (token) {
-      loadServers();
+    if (!token) return;
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) return;
+      const payload = parts[1];
+      const decoded = JSON.parse(
+        decodeURIComponent(
+          atob(payload)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join("")
+        )
+      );
+      setCurrentUserId(decoded.id || "");
+    } catch (err) {
+      console.error("Failed to decode token:", err);
     }
   }, [token]);
 
-  // If not logged in, send to login with redirect back to this DM target
+  // Load servers
   useEffect(() => {
-    if (!authReady) return;
-    if (token || hasRedirectedToLogin.current) return;
-
-    const target = searchParams.get("user");
-    const redirectUrl = target ? `/dms?user=${encodeURIComponent(target)}` : pathname || "/dms";
-    hasRedirectedToLogin.current = true;
-    router.replace(`/?redirect=${encodeURIComponent(redirectUrl)}`);
-  }, [authReady, token, searchParams, pathname, router]);
-
-  // Auto-open DM when ?user=username is provided
-  useEffect(() => {
-    const targetUser = searchParams.get("user");
-    if (!token || !authReady || !targetUser) return;
-    if (autoLoadedPartner === targetUser) return;
-
-    const loadPartner = async () => {
+    if (!token) return;
+    const loadServers = async () => {
       try {
-        const res = await fetch(`/api/profile?username=${encodeURIComponent(targetUser)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch("/api/servers", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}` 
+          },
+          body: JSON.stringify({ action: "list" }),
         });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.profile) {
-          setSelectedPartner(data.profile as User);
-          ensureConversation((data.profile as User).id || (data.profile as User).username);
-          setAutoLoadedPartner(targetUser);
+        if (response.ok) {
+          const data = await response.json();
+          setServers(data.servers || []);
         }
       } catch (err) {
-        console.error("Failed to load target DM user", err);
+        console.error("Failed to load servers:", err);
       }
     };
+    loadServers();
+  }, [token]);
 
-    loadPartner();
-  }, [token, authReady, searchParams, autoLoadedPartner]);
+  useEffect(() => {
+    if (!authReady || !token) {
+      if (authReady && !token) {
+        router.replace("/?redirect=" + encodeURIComponent("/dms"));
+      }
+    }
+  }, [authReady, token, router]);
 
   if (!authReady) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
-        <p className="text-slate-400">Loading...</p>
+      <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-gray-900 via-gray-800 to-gray-900">
+        <p className="text-gray-400">Loading...</p>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
-        <p className="text-slate-400">Please log in to view DMs.</p>
+      <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-gray-900 via-gray-800 to-gray-900">
+        <p className="text-gray-400">Please log in to view DMs.</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-screen flex bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Server list (icon rail) */}
+    <div className="w-full h-screen flex bg-linear-to-b from-gray-900 via-gray-800 to-gray-900">
+      {/* Server list */}
       <ServerList
         servers={servers}
         selectedServerId={null}
         onServerSelect={(serverId) => {
-          const server = servers.find((s) => s.id === serverId);
-          const firstChannel = server?.channels?.[0]?.id || "general";
-          router.push(`/servers/${serverId}/${firstChannel}`);
-        }}
-        onCreateClick={async () => {
-          const created = await createServer("New Server");
-          if (created) {
-            await loadServers();
-            const firstChannel = created.channels?.[0]?.id || "general";
-            router.push(`/servers/${created.id}/${firstChannel}`);
+          // Find the server to get its first channel
+          const server = servers.find(s => s.id === serverId);
+          if (server && server.channels && server.channels.length > 0) {
+            router.push(`/servers/${serverId}/${server.channels[0].id}`);
           }
         }}
+        onCreateClick={() => {}}
       />
 
-      {/* Left Sidebar - Conversations List */}
-      <div className="w-64 border-r border-slate-700 bg-slate-900/50 backdrop-blur overflow-y-auto">
-        <div className="p-4">
-          <h1 className="text-xl font-bold text-white mb-6">Messages</h1>
-          {token && (
-            <DMList
-              token={token}
-              onSelectConversation={(partnerId, partner) => {
-                setSelectedPartner(partner);
-                ensureConversation(partnerId);
-              }}
-              selectedPartnerId={selectedPartner?.id}
-              initialPartner={selectedPartner}
-            />
-          )}
-          {serversLoading && (
-            <p className="text-xs text-slate-500 mt-3">Loading servers…</p>
-          )}
+      {/* DM List sidebar */}
+      <div className="w-64 border-r border-gray-700 bg-gray-900/80 backdrop-blur overflow-y-auto flex flex-col hide-scrollbar">
+        <div className="p-4 flex-1">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-bold text-white">Messages</h1>
+            <button
+              onClick={() => setIsNewDMModalOpen(true)}
+              className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white"
+              title="Start a new DM"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+          <DMList
+            token={token}
+            onSelectDM={(userId, userName, avatar) => {
+              setSelectedUserId(userId);
+              setSelectedUserName(userName);
+              setSelectedUserAvatar(avatar);
+            }}
+            selectedUserId={selectedUserId || undefined}
+          />
         </div>
       </div>
 
-      {/* Right Side - Chat Area */}
+      {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        {selectedPartner ? (
+        {selectedUserId ? (
           <DMChat
-            partnerId={selectedPartner.id}
-            partnerName={selectedPartner.displayName || selectedPartner.username}
-            partnerAvatar={selectedPartner.avatar}
+            partnerId={selectedUserId}
+            partnerName={selectedUserName}
+            partnerAvatar={selectedUserAvatar}
+            currentUserId={currentUserId}
             token={token}
-            onClose={() => setSelectedPartner(null)}
+            onClose={() => setSelectedUserId(null)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
+          <div className="flex-1 flex items-center justify-center text-gray-400">
             <p>Select a conversation to start messaging</p>
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-export default function DMsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
-          <p className="text-slate-400">Loading...</p>
-        </div>
-      }
-    >
-      <DMsPageContent />
-    </Suspense>
+      {/* New DM Modal */}
+      <NewDMModal
+        token={token}
+        isOpen={isNewDMModalOpen}
+        onClose={() => setIsNewDMModalOpen(false)}
+        onSelectUser={(userId, userName, avatar) => {
+          setSelectedUserId(userId);
+          setSelectedUserName(userName);
+          setSelectedUserAvatar(avatar);
+        }}
+      />
+    </div>
   );
 }

@@ -9,6 +9,35 @@ function generateId(): string {
   return crypto.randomBytes(8).toString("hex");
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const token = extractToken(req.headers.get("authorization") || "");
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const db = getDatabase();
+    const userId = (payload as any).id;
+    const servers = db.getUserServers(userId);
+
+    return NextResponse.json({ 
+      servers: servers || [],
+      success: true 
+    });
+  } catch (error) {
+    console.error("Failed to fetch servers", error);
+    return NextResponse.json(
+      { error: "Failed to fetch servers" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
@@ -25,13 +54,16 @@ export async function POST(req: NextRequest) {
     const { action } = body;
 
     if (action === "create") {
-      const { name, description } = body;
+      const { name, description, icon } = body;
       if (!name || !name.trim()) {
         return NextResponse.json(
           { error: "Server name is required" },
           { status: 400 }
         );
       }
+
+      const db = getDatabase();
+      const serverId = generateId();
 
       // Create default roles for the server
       const adminRoleId = generateId();
@@ -41,7 +73,7 @@ export async function POST(req: NextRequest) {
       const defaultRoles: ServerRole[] = [
         {
           id: adminRoleId,
-          serverId: generateId(),
+          serverId: serverId,
           name: DEFAULT_ROLES.ADMIN.name,
           color: DEFAULT_ROLES.ADMIN.color,
           permissions: DEFAULT_ROLES.ADMIN.permissions,
@@ -49,7 +81,7 @@ export async function POST(req: NextRequest) {
         },
         {
           id: moderatorRoleId,
-          serverId: generateId(),
+          serverId: serverId,
           name: DEFAULT_ROLES.MODERATOR.name,
           color: DEFAULT_ROLES.MODERATOR.color,
           permissions: DEFAULT_ROLES.MODERATOR.permissions,
@@ -57,22 +89,19 @@ export async function POST(req: NextRequest) {
         },
         {
           id: memberRoleId,
-          serverId: generateId(),
+          serverId: serverId,
           name: DEFAULT_ROLES.MEMBER.name,
           color: DEFAULT_ROLES.MEMBER.color,
           permissions: DEFAULT_ROLES.MEMBER.permissions,
           createdAt: new Date().toISOString(),
         },
       ];
-
-      const db = getDatabase();
-      const serverId = generateId();
       const server: Server = {
         id: serverId,
         name: name.trim(),
         description: description || "",
         ownerId: payload.id,
-        icon: "🚀",
+        icon: icon || "🚀",
         createdAt: new Date().toISOString(),
         members: [payload.id],
         channels: [
@@ -81,10 +110,7 @@ export async function POST(req: NextRequest) {
           { id: "cute-stuff", name: "cute-stuff", messages: [] },
         ],
         invites: [],
-        roles: defaultRoles.map((role) => ({
-          ...role,
-          serverId,
-        })),
+        roles: defaultRoles,
         memberRoles: [
           {
             userId: payload.id,

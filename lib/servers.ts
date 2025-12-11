@@ -15,7 +15,7 @@ export function useServers(token: string | null) {
   const [error, setError] = useState("");
 
   const createServer = useCallback(
-    async (name: string, description?: string): Promise<Server | null> => {
+    async (name: string, description?: string, icon?: string): Promise<Server | null> => {
       if (!token) return null;
       setError("");
       setIsLoading(true);
@@ -27,7 +27,7 @@ export function useServers(token: string | null) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "create", name, description }),
+          body: JSON.stringify({ action: "create", name, description, icon }),
         });
 
         const data: ServerResponse = await response.json();

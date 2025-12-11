@@ -8,7 +8,7 @@ interface CreateServerModalProps {
   isLoading: boolean;
   serverError?: string;
   onClose: () => void;
-  onCreate: (name: string, description: string) => Promise<Server | null>;
+  onCreate: (name: string, description: string, icon?: string) => Promise<Server | null>;
   onJoinClick?: (inviteCode: string) => void;
 }
 
@@ -22,6 +22,7 @@ export default function CreateServerModal({
 }: CreateServerModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState("");
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"create" | "join">("create");
   const [inviteCode, setInviteCode] = useState("");
@@ -35,10 +36,11 @@ export default function CreateServerModal({
       return;
     }
 
-    const server = await onCreate(name.trim(), description);
+    const server = await onCreate(name.trim(), description, icon || undefined);
     if (server) {
       setName("");
       setDescription("");
+      setIcon("");
       onClose();
     }
   };
@@ -92,6 +94,31 @@ export default function CreateServerModal({
                 className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-pink-500"
                 disabled={isLoading}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Server Avatar URL (optional)
+              </label>
+              <input
+                type="url"
+                value={icon}
+                onChange={(e) => setIcon(e.target.value)}
+                placeholder="https://example.com/avatar.png"
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-pink-500"
+                disabled={isLoading}
+              />
+              {icon && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img
+                    src={icon}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-full object-cover"
+                    onError={() => setIcon("")}
+                  />
+                  <span className="text-xs text-slate-400">Preview</span>
+                </div>
+              )}
             </div>
 
             {error && (

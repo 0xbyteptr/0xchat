@@ -55,14 +55,22 @@ export default function ServerList({
         <button
           key={server.id}
           onClick={() => onServerSelect(server.id)}
-          className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+          className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 overflow-hidden ${
             selectedServerId === server.id
               ? "bg-linear-to-br from-pink-400 to-purple-500 text-white scale-110 shadow-lg shadow-purple-500/50"
               : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 hover:scale-105"
           }`}
           title={server.name}
         >
-          {server.icon || server.name.charAt(0).toUpperCase()}
+          {server.icon && (server.icon.startsWith("http") || server.icon.startsWith("data:")) ? (
+            <img
+              src={server.icon}
+              alt={server.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{server.icon || server.name.charAt(0).toUpperCase()}</span>
+          )}
         </button>
       ))}
     </div>

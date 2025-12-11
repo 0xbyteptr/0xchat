@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import LoginForm from "@/components/LoginForm";
 import { useAuth } from "@/lib/hooks";
@@ -15,33 +15,77 @@ const decodeUserFromToken = (token: string): User | null => {
       return null;
     }
 
-    // Trim whitespace
+    // Trim whitespace and clean up
     const trimmedToken = token.trim();
     
     const parts = trimmedToken.split(".");
+    
     if (parts.length !== 3) {
-      console.warn("Invalid token format: expected 3 parts (header.payload.signature), got", parts.length);
+      console.warn("Invalid token format: expected 3 parts, got", parts.length);
       return null;
     }
     
-    // Decode payload - add padding if needed for base64
-    const payload = JSON.parse(atob(parts[1]));
-    console.log("Decoded token payload:", payload);
+    // Decode payload with proper base64 padding
+    let payloadStr = parts[1];
     
-    // Check if we have the required fields
-    if (!payload?.id || !payload?.username) {
-      console.warn("Missing required fields in token. id:", payload?.id, "username:", payload?.username);
+    // Replace URL-safe characters and add proper padding
+    payloadStr = payloadStr
+      .replace(/-/g, '+')  // Replace - with +
+      .replace(/_/g, '/'); // Replace _ with /
+    
+    // Add padding as needed
+    switch (payloadStr.length % 4) {
+      case 0:
+        break;
+      case 1:
+        console.error("Invalid base64 string length");
+        return null;
+      case 2:
+        payloadStr += '==';
+        break;
+      case 3:
+        payloadStr += '=';
+        break;
+    }
+    
+    let decodedStr;
+    try {
+      decodedStr = atob(payloadStr);
+    } catch (decodeError) {
+      console.error("Failed to decode base64 payload:", decodeError, "String:", payloadStr);
       return null;
     }
     
-    // Avatar is optional in the token, but we need to provide a default
-    return {
-      id: payload.id,
-      username: payload.username,
-      avatar: payload.avatar || "😸", // Default avatar if not in token
-    };
+    let payload;
+    try {
+      payload = JSON.parse(decodedStr);
+    } catch (parseError) {
+      console.error("Failed to parse JSON payload:", parseError);
+      return null;
+    }
+    
+    // If we have id and username, return user
+    if (payload?.id && payload?.username) {
+      return {
+        id: payload.id,
+        username: payload.username,
+        avatar: payload.avatar || "😸",
+      };
+    }
+    
+    // If we only have id, create a minimal user object
+    if (payload?.id) {
+      return {
+        id: payload.id,
+        username: payload.id,
+        avatar: payload.avatar || "😸",
+      };
+    }
+    
+    console.warn("Token payload missing id:", payload);
+    return null;
   } catch (err) {
-    console.warn("Failed to decode token - clearing invalid token:", err);
+    console.error("Unexpected error decoding token:", err);
     // Clear the invalid token from localStorage
     if (typeof localStorage !== "undefined") {
       localStorage.removeItem("authToken");
@@ -52,6 +96,7 @@ const decodeUserFromToken = (token: string): User | null => {
 
 export default function Home() {
   const router = useRouter();
+  const hasRedirected = useRef(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -74,24 +119,25 @@ export default function Home() {
 
   // When token is available, restore user session and redirect to first server
   useEffect(() => {
-    if (!token) {
-      console.log("No token available");
+    // Only attempt redirect once
+    if (hasRedirected.current) {
       return;
     }
+
+    if (!token) {
+      return; // Token still loading
+    }
     
-    console.log("Token available, attempting decode and redirect...");
+    console.log("Token available, attempting decode...");
     const userFromToken = decodeUserFromToken(token);
     if (userFromToken) {
-      console.log("User decoded from token:", userFromToken);
+      console.log("User decoded successfully, redirecting...");
+      hasRedirected.current = true;
       setCurrentUser(userFromToken);
-      // Add a small delay to ensure state is updated
-      const timeout = setTimeout(() => {
-        console.log("Redirecting to /servers");
-        router.push("/servers");
-      }, 100);
-      return () => clearTimeout(timeout);
+      router.push("/servers");
     } else {
-      console.error("Failed to decode user from token - userFromToken is null");
+      console.log("Could not decode token, showing login form");
+      hasRedirected.current = true;
     }
   }, [token, router]);
 
@@ -161,7 +207,38 @@ export default function Home() {
     }
   };
 
-  // Show login form only if no token is present
+  // Show loading page if token exists and is being processed
+  if (token && hasRedirected.current === false) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-linear-to-r from-pink-500 to-purple-600 mb-4">
+              0xchat
+            </h1>
+            <p className="text-slate-400">Welcome back! 😸</p>
+          </div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500"></div>
+            <p className="text-slate-300">Preparing your chat...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state during redirect, otherwise show login form
+  if (hasRedirected.current && currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p>Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <LoginForm
       isRegistering={isRegistering}

@@ -48,6 +48,11 @@ export default function ServerChat() {
   const serverId = params?.serverId as string;
   const channelId = params?.channelId as string;
 
+  // Guard against undefined params in Next.js 15
+  if (!serverId || !channelId) {
+    return <div className="flex items-center justify-center w-full h-screen bg-slate-900 text-white">Loading...</div>;
+  }
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [messageInput, setMessageInput] = useState("");
@@ -351,9 +356,9 @@ export default function ServerChat() {
     };
   }, [isLoggedIn, currentUser, serverId, channelId, setServers]);
 
-  const handleCreateServer = async (name: string, description: string) => {
+  const handleCreateServer = async (name: string, description: string, icon?: string) => {
     setServerError("");
-    const newServer = await createServer(name, description);
+    const newServer = await createServer(name, description, icon);
     if (newServer) {
       setServers([...servers, newServer]);
       router.push(`/servers/${newServer.id}/${newServer.channels[0].id}`);
@@ -548,7 +553,7 @@ export default function ServerChat() {
         <div className="flex-1 flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
           <div className="text-center space-y-8 px-4">
             <div className="space-y-4">
-              <div className="text-8xl animate-bounce mb-4">�</div>
+              <div className="text-8xl animate-bounce mb-4">😻</div>
               <h2 className="text-4xl font-black text-white">
                 Welcome to 0xChat
               </h2>
