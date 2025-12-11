@@ -27,6 +27,7 @@ let wss: any = null;
 function ensureServer() {
   if (wss) return wss;
   wss = new WebSocketServer({ port: WS_PORT });
+  console.log(`🔌 WebSocket server listening on port ${WS_PORT}`);
   wss.on("connection", (socket: any) => {
     socket.on("message", (data: any) => {
       // simple echo/broadcast
