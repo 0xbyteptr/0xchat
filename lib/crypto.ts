@@ -17,18 +17,31 @@ export async function verifyPassword(
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // Recommended for GCM
+let warnedMissingKey = false;
 
-function getEncryptionKey(): Buffer {
+function getEncryptionKey(): Buffer | null {
   const keyHex = process.env.MESSAGE_ENCRYPTION_KEY;
   if (!keyHex) {
-    throw new Error("MESSAGE_ENCRYPTION_KEY is missing. Set it in your .env as a 64-char hex string.");
+    if (!warnedMissingKey) {
+      console.warn(
+        "MESSAGE_ENCRYPTION_KEY is missing; storing messages unencrypted. Set a 64-char hex string in .env for AES-256-GCM encryption."
+      );
+      warnedMissingKey = true;
+    }
+    return null;
   }
   return Buffer.from(keyHex, "hex");
 }
 
-export function encryptMessage(plainText: string): { iv: string; encrypted: string; tag: string } {
+export function encryptMessage(plainText: string): { iv?: string; encrypted: string; tag?: string } {
+  const key = getEncryptionKey();
+  if (!key) {
+    // Store plaintext when no key configured (dev fallback)
+    return { encrypted: plainText };
+  }
+
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plainText, 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
   return {
@@ -38,8 +51,14 @@ export function encryptMessage(plainText: string): { iv: string; encrypted: stri
   };
 }
 
-export function decryptMessage({ iv, encrypted, tag }: { iv: string; encrypted: string; tag: string }): string {
-  const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(), Buffer.from(iv, 'hex'));
+export function decryptMessage({ iv, encrypted, tag }: { iv?: string; encrypted: string; tag?: string }): string {
+  const key = getEncryptionKey();
+  if (!key || !iv || !tag) {
+    // No encryption used; return as-is
+    return encrypted;
+  }
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'hex'));
   decipher.setAuthTag(Buffer.from(tag, 'hex'));
   const decrypted = Buffer.concat([
     decipher.update(Buffer.from(encrypted, 'hex')),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks";
 import { useServers } from "@/lib/servers";
@@ -9,7 +9,7 @@ import DMList from "@/components/DMList";
 import DMChat from "@/components/DMChat";
 import ServerList from "@/components/ServerList";
 
-export default function DMsPage() {
+function DMsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -21,6 +21,7 @@ export default function DMsPage() {
   const [serversLoading, setServersLoading] = useState(false);
   const [autoLoadedPartner, setAutoLoadedPartner] = useState<string | null>(null);
   const hasRedirectedToLogin = useRef(false);
+  const ensuredConversations = useRef<Set<string>>(new Set());
 
   const loadServers = async () => {
     if (!token) return;
@@ -28,6 +29,25 @@ export default function DMsPage() {
     const data = await listServers();
     setServers(data);
     setServersLoading(false);
+  };
+
+  const ensureConversation = async (partnerId: string) => {
+    if (!token || !partnerId) return;
+    if (ensuredConversations.current.has(partnerId)) return;
+    ensuredConversations.current.add(partnerId);
+
+    try {
+      await fetch("/api/dms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ to: partnerId, content: "" }),
+      });
+    } catch (err) {
+      console.error("Failed to auto-create DM", err);
+    }
   };
 
   useEffect(() => {
@@ -69,6 +89,7 @@ export default function DMsPage() {
         const data = await res.json();
         if (data?.profile) {
           setSelectedPartner(data.profile as User);
+          ensureConversation((data.profile as User).id || (data.profile as User).username);
           setAutoLoadedPartner(targetUser);
         }
       } catch (err) {
@@ -125,6 +146,7 @@ export default function DMsPage() {
               token={token}
               onSelectConversation={(partnerId, partner) => {
                 setSelectedPartner(partner);
+                ensureConversation(partnerId);
               }}
               selectedPartnerId={selectedPartner?.id}
               initialPartner={selectedPartner}
@@ -153,5 +175,19 @@ export default function DMsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DMsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      }
+    >
+      <DMsPageContent />
+    </Suspense>
   );
 }
