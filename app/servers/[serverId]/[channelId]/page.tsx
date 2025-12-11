@@ -222,7 +222,14 @@ export default function ServerChat() {
       const ws = new WebSocket(getWebSocketURL());
 
       ws.onopen = () => {
-        console.log("WS connected to WebSocket");
+        console.log("✅ WS connected");
+        // Subscribe to this channel
+        ws.send(
+          JSON.stringify({
+            type: "subscribe",
+            channel: `${serverId}-${channelId}`,
+          })
+        );
       };
 
       ws.onmessage = (event) => {
@@ -309,7 +316,7 @@ export default function ServerChat() {
       id: Date.now().toString(),
       author: currentUser,
       content: messageInput,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     // Optimistically update UI
@@ -339,12 +346,11 @@ export default function ServerChat() {
     }
 
     // Send via websocket if connected
-    if (wsRef.current) {
+    if (wsRef.current && wsRef.current.readyState === 1) {
       wsRef.current.send(
         JSON.stringify({
           type: "message",
-          server: serverId,
-          channel: channelId,
+          channel: `${serverId}-${channelId}`,
           message: newMessage,
         })
       );

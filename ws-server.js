@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Standalone WebSocket server for catboychat
- * Run this: node ws-server.js
+ * Real-time WebSocket server for catboychat
+ * Handles message broadcasting by channel
+ * Run: node ws-server.js
  */
 
 const { WebSocketServer } = require("ws");
@@ -15,34 +16,82 @@ const server = http.createServer();
 // Create WebSocket server
 const wss = new WebSocketServer({ server });
 
-const clients = new Set();
+// Track connected clients by channel
+const channelSubscriptions = new Map(); // channel -> Set of clients
 
 wss.on("connection", (ws) => {
-  console.log(`✅ Client connected. Total: ${clients.size + 1}`);
-  clients.add(ws);
+  console.log(`✅ Client connected`);
+  ws.channels = new Set(); // Track which channels this client is subscribed to
 
   ws.on("message", (data) => {
-    console.log(`📨 Broadcast: ${data.toString().substring(0, 50)}...`);
-    // Broadcast to all clients
-    clients.forEach((client) => {
-      if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(data);
+    try {
+      const message = JSON.parse(data.toString());
+
+      // Handle subscription/presence
+      if (message.type === "subscribe" && message.channel) {
+        const channel = message.channel;
+        if (!channelSubscriptions.has(channel)) {
+          channelSubscriptions.set(channel, new Set());
+        }
+        channelSubscriptions.get(channel).add(ws);
+        ws.channels.add(channel);
+        console.log(`📍 Client subscribed to: ${channel}`);
+        return;
       }
-    });
+
+      // Handle message broadcast to channel
+      if (message.type === "message" && message.channel) {
+        const channel = message.channel;
+        const subscribers = channelSubscriptions.get(channel);
+        
+        if (subscribers) {
+          console.log(`📨 Relay to ${channel} (${subscribers.size} clients): ${JSON.stringify(message).substring(0, 60)}...`);
+          subscribers.forEach((client) => {
+            if (client.readyState === 1) { // WebSocket.OPEN
+              client.send(data);
+            }
+          });
+        }
+        return;
+      }
+
+      // Default: broadcast to all subscribers in the channel
+      if (message.channel) {
+        const subscribers = channelSubscriptions.get(message.channel);
+        if (subscribers) {
+          subscribers.forEach((client) => {
+            if (client.readyState === 1) {
+              client.send(data);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`❌ Message parse error:`, err.message);
+    }
   });
 
   ws.on("close", () => {
-    clients.delete(ws);
-    console.log(`❌ Client disconnected. Total: ${clients.size}`);
+    // Remove from all subscribed channels
+    ws.channels.forEach((channel) => {
+      const subscribers = channelSubscriptions.get(channel);
+      if (subscribers) {
+        subscribers.delete(ws);
+        if (subscribers.size === 0) {
+          channelSubscriptions.delete(channel);
+        }
+      }
+    });
+    console.log(`❌ Client disconnected. Channels: ${ws.channels.size}`);
   });
 
   ws.on("error", (error) => {
-    console.error(`⚠️ Error:`, error.message);
+    console.error(`⚠️ WebSocket error:`, error.message);
   });
 });
 
 server.listen(WS_PORT, "0.0.0.0", () => {
-  console.log(`🚀 WebSocket server running on port ${WS_PORT}`);
+  console.log(`🚀 Real-time WebSocket server running on port ${WS_PORT}`);
 });
 
 process.on("SIGINT", () => {
