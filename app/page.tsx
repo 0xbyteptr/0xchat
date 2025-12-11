@@ -119,6 +119,48 @@ export default function Home() {
     }
   };
 
+  const handleWalletAuth = async (address: string): Promise<boolean> => {
+    try {
+      const message = `Authenticate to 0xChat\nWallet: ${address}\nTimestamp: ${Date.now()}`;
+      
+      // Import Web3 functions
+      const { signMessage } = await import("@/lib/web3-auth");
+      const signature = await signMessage(address, message);
+
+      if (!signature) {
+        setAuthError("Failed to sign message with wallet");
+        return false;
+      }
+
+      // Send to Web3 auth endpoint
+      const res = await fetch("/api/auth/web3", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, message, signature }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAuthError(data.error || "Wallet authentication failed");
+        return false;
+      }
+
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
+        setCurrentUser(data.user);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Wallet auth failed"
+      );
+      return false;
+    }
+  };
+
   // Show login form only if no token is present
   return (
     <LoginForm
@@ -134,6 +176,7 @@ export default function Home() {
         setIsRegistering(!isRegistering);
         setAuthError("");
       }}
+      onWalletAuth={handleWalletAuth}
     />
   );
 }

@@ -32,7 +32,7 @@ export default function Sidebar({
         <div className="mb-4">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-3xl">{server?.icon || "🚀"}</span>
-            <h2 className="text-xl font-bold text-white">{server?.name || "CatboyChat"}</h2>
+            <h2 className="text-xl font-bold text-white">{server?.name || "0xChat"}</h2>
           </div>
           <p className="text-xs text-gray-400">{server?.members?.length || 0} members</p>
         </div>

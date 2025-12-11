@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
+import WalletLogin from "./WalletLogin";
 
 interface LoginFormProps {
   isRegistering: boolean;
@@ -12,6 +13,7 @@ interface LoginFormProps {
   onPasswordChange: (value: string) => void;
   onSubmit: (e: FormEvent) => void;
   onToggleRegister: () => void;
+  onWalletAuth?: (address: string) => Promise<boolean>;
 }
 
 export default function LoginForm({
@@ -24,7 +26,9 @@ export default function LoginForm({
   onPasswordChange,
   onSubmit,
   onToggleRegister,
+  onWalletAuth,
 }: LoginFormProps) {
+  const [showWalletLogin, setShowWalletLogin] = useState(false);
   return (
     <div className="flex min-h-screen bg-slate-950">
       {/* Left Side - Branding & Info */}
@@ -36,30 +40,37 @@ export default function LoginForm({
         </div>
         
         <div className="relative z-10 text-center">
-          <div className="mb-8 text-7xl animate-bounce">🐱</div>
+          <div className="mb-8 text-7xl animate-bounce">💬</div>
           <h1 className="text-5xl font-black text-white mb-4">0xChat</h1>
-          <p className="text-xl text-purple-200 mb-8">Connect with your purr-fect friends</p>
+          <p className="text-xl text-purple-200 mb-8">Friendly chat for everyone</p>
           
           <div className="space-y-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/30 flex items-center justify-center">💬</div>
+              <div className="w-10 h-10 rounded-lg bg-purple-500/30 flex items-center justify-center">⚡</div>
               <div>
                 <p className="font-semibold text-white">Real-time Messaging</p>
-                <p className="text-sm text-purple-300">Chat instantly with your community</p>
+                <p className="text-sm text-purple-300">Instant delivery to all subscribers</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-pink-500/30 flex items-center justify-center">🎪</div>
+              <div className="w-10 h-10 rounded-lg bg-pink-500/30 flex items-center justify-center">🏢</div>
               <div>
                 <p className="font-semibold text-white">Organize Servers</p>
                 <p className="text-sm text-purple-300">Create spaces for every community</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/30 flex items-center justify-center">👥</div>
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/30 flex items-center justify-center">🔑</div>
               <div>
                 <p className="font-semibold text-white">Role-Based Access</p>
                 <p className="text-sm text-purple-300">Manage permissions with ease</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/30 flex items-center justify-center">😊</div>
+              <div>
+                <p className="font-semibold text-white">Easy & Friendly</p>
+                <p className="text-sm text-purple-300">Simple to use, fun to chat</p>
               </div>
             </div>
           </div>
@@ -70,17 +81,18 @@ export default function LoginForm({
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 bg-slate-900">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:hidden">
-            <h1 className="text-4xl font-bold text-white mb-2">🐱 CatboyChat</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">0xChat</h1>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
             <h2 className="text-2xl font-bold text-white mb-2">
-              {isRegistering ? "Create Account" : "Welcome Back"}
+              {isRegistering ? "📝 Create Account" : "👋 Welcome Back"}
             </h2>
             <p className="text-gray-400 mb-8">
               {isRegistering
-                ? "Join the purr-fect community 💕"
-                : "Sign in to your account"}
+                ? "🎉 Join our friendly community"
+                : "🔓 Sign in to chat with friends"
+              }
             </p>
 
             {authError && (
@@ -101,7 +113,7 @@ export default function LoginForm({
                     type="text"
                     value={username}
                     onChange={(e) => onUsernameChange(e.target.value)}
-                    placeholder="your_catboy_name"
+                    placeholder="your_username"
                     className="w-full rounded-lg bg-slate-700/50 border border-slate-600/50 pl-12 pr-4 py-3 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                     maxLength={20}
                     disabled={isAuthLoading}
@@ -134,12 +146,12 @@ export default function LoginForm({
                 {isAuthLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
+                    ⏳ Processing...
                   </span>
                 ) : isRegistering ? (
-                  "Create Account"
+                  "🚀 Create Account"
                 ) : (
-                  "Sign In"
+                  "✨ Sign In"
                 )}
               </button>
             </form>
@@ -149,30 +161,53 @@ export default function LoginForm({
                 <div className="w-full border-t border-slate-700"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-800/50 text-gray-400">or</span>
+                <span className="px-2 bg-slate-800/50 text-gray-400">
+                  {showWalletLogin ? "or use username/password" : "or continue with wallet"}
+                </span>
               </div>
             </div>
+
+            {showWalletLogin ? (
+              <>
+                {onWalletAuth && (
+                  <WalletLogin
+                    onWalletConnect={onWalletAuth}
+                    isLoading={isAuthLoading}
+                  />
+                )}
+
+                <button
+                  onClick={() => setShowWalletLogin(false)}
+                  className="w-full mt-6 rounded-lg border-2 border-slate-600 hover:border-purple-500 px-4 py-3 font-semibold text-gray-300 hover:text-white transition-all duration-200"
+                >
+                  ↩️ Back to Username/Password
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setShowWalletLogin(true)}
+                className="w-full mt-6 rounded-lg border-2 border-blue-600 hover:border-blue-400 px-4 py-3 font-semibold text-gray-300 hover:text-white transition-all duration-200"
+              >
+                🔗 Sign In with Wallet
+              </button>
+            )}
 
             <button
               onClick={onToggleRegister}
               className="w-full mt-6 rounded-lg border-2 border-slate-600 hover:border-purple-500 px-4 py-3 font-semibold text-gray-300 hover:text-white transition-all duration-200"
             >
               {isRegistering
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Register"}
+                ? "🔑 Already have an account? Sign In"
+                : "✍️ Don't have an account? Register"}
             </button>
 
             <div className="mt-8 p-4 bg-slate-700/30 rounded-lg border border-slate-600/30">
-              <p className="text-xs text-gray-400 mb-2 font-semibold">Demo Credentials</p>
-              <div className="space-y-1 text-xs text-gray-300">
-                <p>Username: <code className="bg-slate-900/50 px-2 py-1 rounded font-mono">demo</code></p>
-                <p>Password: <code className="bg-slate-900/50 px-2 py-1 rounded font-mono">password</code></p>
-              </div>
+              <p className="text-xs text-gray-400 mb-2 font-semibold">🧪 Demo Credentials</p>
             </div>
           </div>
 
           <p className="mt-6 text-center text-xs text-gray-500">
-            🐾 Made with love for the catboy & catgirl community 🐾
+            ✨ Connect. Chat. Share. All in one place.
           </p>
         </div>
       </div>

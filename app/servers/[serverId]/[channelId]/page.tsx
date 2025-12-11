@@ -543,12 +543,12 @@ export default function ServerChat() {
         <div className="flex-1 flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
           <div className="text-center space-y-8 px-4">
             <div className="space-y-4">
-              <div className="text-8xl animate-bounce mb-4">🐱</div>
+              <div className="text-8xl animate-bounce mb-4">�</div>
               <h2 className="text-4xl font-black text-white">
-                Welcome to CatboyChat
+                Welcome to 0xChat
               </h2>
               <p className="text-xl text-gray-400">
-                Where catboys and catgirls unite
+                Friendly chat for everyone
               </p>
             </div>
             

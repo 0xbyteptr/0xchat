@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Real-time WebSocket server for catboychat
+ * Real-time WebSocket server for 0xChat
  * Handles message broadcasting by channel
  * Also listens for HTTP POST requests to /broadcast
  * Run: node ws-server.js

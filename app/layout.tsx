@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Catboy Chat",
+  title: "0xChat",
   description: "meow :3",
 };
 
