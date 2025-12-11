@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { User } from "@/lib/types";
 
 interface ProfileModalProps {
@@ -26,6 +26,9 @@ export default function ProfileModal({
   const [font, setFont] = useState<User["font"]>("sans");
   const [accentColor, setAccentColor] = useState("#a855f7");
   const [error, setError] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile) {
@@ -38,6 +41,47 @@ export default function ProfileModal({
       setAccentColor(profile.accentColor || "#a855f7");
     }
   }, [profile]);
+
+  const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Set filename
+    setFileName(file.name);
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError("");
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string;
+        setAvatar(base64String);
+        setIsUploadingAvatar(false);
+      };
+      reader.onerror = () => {
+        setError("Failed to read file");
+        setIsUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      setError("Failed to upload avatar");
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +100,7 @@ export default function ProfileModal({
           <button
             onClick={onClose}
             className="text-slate-300 hover:text-white text-sm"
-            disabled={isLoading}
+            disabled={isLoading || isUploadingAvatar}
           >
             Close
           </button>
@@ -64,15 +108,14 @@ export default function ProfileModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4 items-start">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xl">
-              {avatar?.startsWith("http") ? (
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xl shrink-0">
+              {avatar?.startsWith("http") || avatar?.startsWith("data:") ? (
                 <img
                   src={avatar}
                   alt={displayName || profile?.username || "avatar"}
                   className="w-full h-full object-cover"
                   width={64}
                   height={64}
-                  loading="lazy"
                 />
               ) : (
                 <span>{avatar || "😺"}</span>
@@ -80,13 +123,47 @@ export default function ProfileModal({
             </div>
             <div className="flex-1 space-y-3">
               <div>
-                <label className="block text-sm text-slate-300 mb-1">Avatar URL</label>
+                <label className="block text-sm text-slate-300 mb-2">
+                  Upload Avatar
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarFileUpload}
+                    disabled={isLoading || isUploadingAvatar}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading || isUploadingAvatar}
+                    className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUploadingAvatar ? "Uploading..." : "Choose File"}
+                  </button>
+                  {fileName && (
+                    <span className="flex items-center px-3 py-2 bg-slate-700 text-slate-300 text-sm rounded-lg truncate">
+                      {fileName}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  PNG, JPG, GIF (max 5MB)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">
+                  Or Avatar URL
+                </label>
                 <input
-                  value={avatar}
+                  value={avatar.startsWith("data:") ? "" : avatar}
                   onChange={(e) => setAvatar(e.target.value)}
                   className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="https://..."
-                  disabled={isLoading}
+                  disabled={isLoading || isUploadingAvatar}
                 />
               </div>
             </div>
@@ -114,7 +191,7 @@ export default function ProfileModal({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-sm text-slate-300 mb-1">Theme</label>
               <select
@@ -143,24 +220,26 @@ export default function ProfileModal({
                 <option value="serif">Serif</option>
               </select>
             </div>
+          </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm text-slate-300 mb-1">Accent</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-10 w-12 rounded bg-slate-700 border border-slate-600"
-                  disabled={isLoading}
-                />
-                <input
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="flex-1 rounded-lg bg-slate-700 px-3 py-2 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
-                  disabled={isLoading}
-                />
-              </div>
+          <div className="space-y-1">
+            <label className="block text-sm text-slate-300 mb-1">Accent Color</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="h-10 w-20 rounded cursor-pointer border border-slate-600"
+                disabled={isLoading}
+                title="Pick a color"
+              />
+              <input
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="flex-1 rounded-lg bg-slate-700 px-3 py-2 text-white text-sm placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+                maxLength={7}
+              />
             </div>
           </div>
 

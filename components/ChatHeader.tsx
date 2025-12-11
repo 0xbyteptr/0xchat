@@ -1,6 +1,7 @@
 "use client";
 
 import { Channel, Server } from "@/lib/types";
+import { BarChart3, Hash } from "lucide-react";
 
 interface ChatHeaderProps {
   server: Server | undefined;
@@ -14,7 +15,7 @@ export default function ChatHeader({ server, selectedChannel, onShowOverview }: 
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl font-bold text-purple-400">#</span>
+            <Hash size={24} className="text-purple-400" />
             <h3 className="text-lg font-bold text-white">
               {selectedChannel?.name}
             </h3>
@@ -31,7 +32,7 @@ export default function ChatHeader({ server, selectedChannel, onShowOverview }: 
             onClick={onShowOverview}
             className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white font-medium rounded-lg transition-all duration-200 flex items-center gap-2 hover:scale-105 active:scale-95"
           >
-            <span>📊</span>
+            <BarChart3 size={18} />
             <span className="hidden sm:inline">Server Overview</span>
           </button>
         </div>

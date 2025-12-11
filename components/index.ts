@@ -5,3 +5,4 @@ export { default as ChatHeader } from "./ChatHeader";
 export { default as MessagesList } from "./MessagesList";
 export { default as MessageInput } from "./MessageInput";
 export { default as ChatLayout } from "./ChatLayout";
+export { default as MembersList } from "./MembersList";

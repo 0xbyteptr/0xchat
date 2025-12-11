@@ -56,6 +56,7 @@ export default function ServerChat() {
   const [viewProfileUser, setViewProfileUser] = useState<User | null>(null);
   const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [serverMembers, setServerMembers] = useState<User[]>([]);
 
   const {
     token,
@@ -136,6 +137,41 @@ export default function ServerChat() {
 
     loadUserServers();
   }, [token, listServers]);
+
+  // Load server members when server changes
+  useEffect(() => {
+    if (!token || !serverId) return;
+
+    const selectedServer = servers.find((s) => s.id === serverId);
+    if (!selectedServer) return;
+
+    const loadMembers = async () => {
+      const memberIds = selectedServer.members || [];
+      const memberProfiles: User[] = [];
+
+      for (const memberId of memberIds) {
+        try {
+          const response = await fetch(`/api/profile?username=${memberId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              memberProfiles.push(data.user);
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to load member ${memberId}:`, error);
+        }
+      }
+
+      setServerMembers(memberProfiles);
+    };
+
+    loadMembers();
+  }, [token, serverId, servers]);
 
   // Load messages from selected server and channel (only once per channel)
   useEffect(() => {
@@ -396,6 +432,7 @@ export default function ServerChat() {
           onLogout={handleLogout}
           onShowInvite={() => setIsModalOpen(true)}
           onShowOverview={() => setIsOverviewOpen(true)}
+          serverMembers={serverMembers}
         />
         </div>
       ) : (

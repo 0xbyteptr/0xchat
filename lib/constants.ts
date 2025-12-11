@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   AUTH: "/api/auth",
   MESSAGES: "/api/messages",
   FRIEND_INVITES: "/api/friend/invite",
+  PROFILE: "/api/profile",
 } as const;
 
 // Error messages

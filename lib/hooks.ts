@@ -18,6 +18,19 @@ async function parseJsonSafe(response: Response) {
   }
 }
 
+async function validateToken(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(API_ENDPOINTS.PROFILE, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.status === 200;
+  } catch {
+    return false;
+  }
+}
+
 export function useAuth() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -39,7 +52,24 @@ export function useAuth() {
     if (typeof window !== "undefined") {
       const storedToken = localStorage.getItem("authToken") || readCookieToken();
       if (storedToken) {
-        setToken(storedToken);
+        // Validate token by trying a simple API call
+        validateToken(storedToken)
+          .then((isValid: boolean) => {
+            if (isValid) {
+              setToken(storedToken);
+            } else {
+              // Token is invalid, clear it
+              setToken(null);
+              localStorage.removeItem("authToken");
+              document.cookie = "authToken=; path=/; max-age=0;";
+            }
+          })
+          .catch(() => {
+            // On error, clear the token to allow re-login
+            setToken(null);
+            localStorage.removeItem("authToken");
+            document.cookie = "authToken=; path=/; max-age=0;";
+          });
       }
     }
   }, []);

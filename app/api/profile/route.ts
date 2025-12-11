@@ -43,7 +43,12 @@ export async function PATCH(req: NextRequest) {
     if (typeof displayName === "string") updates.displayName = displayName.slice(0, 64);
     if (typeof bio === "string") updates.bio = bio.slice(0, 280);
     if (typeof status === "string") updates.status = status.slice(0, 64);
-    if (typeof avatar === "string") updates.avatar = avatar;
+    if (typeof avatar === "string") {
+      // Allow both URLs and base64 data URIs (up to 1MB for base64)
+      if (avatar.length <= 1048576) {
+        updates.avatar = avatar;
+      }
+    }
     if (theme === "dark" || theme === "midnight" || theme === "sunset" || theme === "mint")
       updates.theme = theme;
     if (font === "sans" || font === "mono" || font === "serif") updates.font = font;

@@ -108,6 +108,15 @@
         "maxUses": 0,
         "uses": 0,
         "active": true
+      },
+      {
+        "id": "ae03a07dbbe4436d",
+        "serverId": "e4b6ccaa893e7e50",
+        "createdBy": "byteptr.xyz",
+        "createdAt": "2025-12-11T11:11:52.718Z",
+        "maxUses": 0,
+        "uses": 0,
+        "active": true
       }
     ]
   },

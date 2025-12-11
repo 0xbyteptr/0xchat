@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Server } from "@/lib/types";
+import { Users } from "lucide-react";
 
 interface ServerListProps {
   servers: Server[];
@@ -35,7 +36,7 @@ export default function ServerList({
         className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white hover:scale-105"
         title="Friends"
       >
-        🤝
+        <Users size={20} />
       </Link>
 
       {/* Server List */}

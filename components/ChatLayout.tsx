@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesList from "@/components/MessagesList";
 import MessageInput from "@/components/MessageInput";
+import MembersList from "@/components/MembersList";
 import { RefObject } from "react";
 
 interface ChatLayoutProps {
@@ -22,6 +23,7 @@ interface ChatLayoutProps {
   onLogout: () => void;
   onShowInvite?: () => void;
   onShowOverview?: () => void;
+  serverMembers?: User[];
 }
 
 export default function ChatLayout({
@@ -39,6 +41,7 @@ export default function ChatLayout({
   onLogout,
   onShowInvite,
   onShowOverview,
+  serverMembers = [],
 }: ChatLayoutProps) {
   const selectedChannel = channels.find((ch) => ch.id === selectedChannelId);
 
@@ -72,6 +75,8 @@ export default function ChatLayout({
           onSubmit={onSendMessage}
         />
       </div>
+
+      <MembersList members={serverMembers} onAvatarClick={onAvatarClick} />
     </div>
   );
 }

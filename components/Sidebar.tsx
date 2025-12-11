@@ -1,6 +1,7 @@
 "use client";
 
 import { User, Channel, Server } from "@/lib/types";
+import { UserCircle, LogOut, Send } from "lucide-react";
 
 interface SidebarProps {
   currentUser: User | null;
@@ -39,7 +40,7 @@ export default function Sidebar({
             onClick={onShowInvite}
             className="w-full px-3 py-2 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
           >
-            <span>📨</span>
+            <Send size={16} />
             <span>Invite Members</span>
           </button>
         )}
@@ -74,14 +75,13 @@ export default function Sidebar({
         <div className="bg-slate-700/30 border border-slate-600/30 rounded-lg p-3">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-              {currentUser?.avatar?.startsWith("http") ? (
+              {currentUser?.avatar?.startsWith("http") || currentUser?.avatar?.startsWith("data:") ? (
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.username}
                   className="w-full h-full object-cover"
                   width={40}
                   height={40}
-                  loading="lazy"
                 />
               ) : (
                 currentUser?.avatar || "😺"
@@ -101,15 +101,17 @@ export default function Sidebar({
         <div className="flex gap-2">
           <button
             onClick={onProfileClick}
-            className="flex-1 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-white px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+            className="flex-1 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-white px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            👤 Profile
+            <UserCircle size={16} />
+            <span>Profile</span>
           </button>
           <button
             onClick={onLogout}
-            className="flex-1 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-300 hover:text-red-200 px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+            className="flex-1 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-300 hover:text-red-200 px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            🚪 Logout
+            <LogOut size={16} />
+            <span>Logout</span>
           </button>
         </div>
       </div>

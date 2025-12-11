@@ -38,14 +38,13 @@ export default function MessagesList({
             className="shrink-0 w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-purple-400 hover:scale-110 transition-transform"
             title={`View ${message.author.username}'s profile`}
           >
-            {message.author.avatar?.startsWith("http") ? (
+            {message.author.avatar?.startsWith("http") || message.author.avatar?.startsWith("data:") ? (
               <img
                 src={message.author.avatar}
                 alt={message.author.username}
                 className="w-full h-full object-cover"
                 width={40}
                 height={40}
-                loading="lazy"
               />
             ) : (
               <span>{message.author.avatar || "😺"}</span>

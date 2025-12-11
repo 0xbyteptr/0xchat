@@ -25,15 +25,14 @@ export default function ViewProfileModal({ isOpen, user, onClose }: ViewProfileM
         </div>
 
         <div className="flex gap-4 items-center mb-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xl">
-            {user.avatar?.startsWith("http") ? (
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xl shrink-0">
+            {user.avatar?.startsWith("http") || user.avatar?.startsWith("data:") ? (
               <img
                 src={user.avatar}
                 alt={user.username}
                 className="w-full h-full object-cover"
                 width={64}
                 height={64}
-                loading="lazy"
               />
             ) : (
               <span>{user.avatar || "😺"}</span>
