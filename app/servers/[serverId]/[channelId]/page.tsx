@@ -40,9 +40,9 @@ const getWebSocketURL = (): string => {
     return "ws://localhost:3002";
   }
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const hostname = window.location.hostname;
-  // Use dedicated WebSocket endpoint on same domain
-  return `${protocol}//${hostname}:${env.WS_PORT || "3002"}`;
+  // Use WebSocket subdomain (ws.byteptr.xyz) instead of main domain
+  const wsHost = window.location.hostname.replace("chat.", "ws.");
+  return `${protocol}//${wsHost}:3002`;
 };
 
 export default function ServerChat() {
