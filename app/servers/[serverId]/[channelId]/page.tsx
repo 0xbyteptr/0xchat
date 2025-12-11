@@ -235,8 +235,12 @@ export default function ServerChat() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log("📩 WS message received:", data);
+          
           if (data?.type === "message" && data?.channel === `${serverId}-${channelId}`) {
             const incoming: Message = data.message;
+            console.log("✨ Adding message to channel:", incoming);
+            
             setServers((prev) =>
               prev.map((s) =>
                 s.id === serverId
@@ -253,6 +257,12 @@ export default function ServerChat() {
                   : s
               )
             );
+          } else {
+            console.log("❌ Message type/channel mismatch:", {
+              type: data?.type,
+              expectedChannel: `${serverId}-${channelId}`,
+              actualChannel: data?.channel,
+            });
           }
         } catch (err) {
           console.warn("WS message parse error", err);
