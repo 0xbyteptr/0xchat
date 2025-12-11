@@ -321,13 +321,19 @@ export default function ServerChat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !currentUser || !serverId || !channelId || !token) return;
+    if (!messageInput.trim() || !serverId || !channelId || !token) return;
 
-    // Build message author with guaranteed fields
+    // Use profile from hook (always has full data) fallback to currentUser
+    const author = profile || currentUser;
+    if (!author) {
+      console.warn("⚠️ No user profile available");
+      return;
+    }
+
     const messageAuthor: User = {
-      id: currentUser.id,
-      username: currentUser.username || currentUser.id, // Fallback to id if username missing
-      avatar: currentUser.avatar || `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(currentUser.id)}`, // Generate default avatar
+      id: author.id,
+      username: author.username || author.id,
+      avatar: author.avatar || `https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=${encodeURIComponent(author.id)}`,
     };
 
     const newMessage: Message = {
