@@ -1,36 +1,266 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CatboyChat 🐱
+
+A cute Discord-like chat service built with Next.js, featuring user authentication with password hashing, multiple channels, and real-time messaging.
+
+## Features
+
+- 🔐 User authentication with bcrypt password hashing
+- 💬 Multiple channels for organized conversations
+- 🎨 Cute Discord-like UI with Tailwind CSS
+- 📦 Flexible database support (JSON for development, extensible for production)
+- 🌐 RESTful API for all operations
+- 🐾 Avatar system for users
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Installation
 
 ```bash
+# Clone the repository
+cd catboychat
+
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+Username: demo
+Password: password
+```
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Create a `.env.local` file:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NODE_ENV=development
+DATABASE_TYPE=json
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For production:
 
-## Deploy on Vercel
+```env
+NEXT_PUBLIC_API_URL=https://your-domain.com
+NODE_ENV=production
+DATABASE_TYPE=mongodb  # or postgres, etc.
+DATABASE_URL=your-connection-string
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Authentication
+
+#### POST `/api/auth`
+
+Register a new user or login.
+
+**Request:**
+
+```json
+{
+  "action": "register",
+  "username": "catboy123",
+  "password": "securepassword"
+}
+```
+
+Or for login:
+
+```json
+{
+  "action": "login",
+  "username": "demo",
+  "password": "password"
+}
+```
+
+**Response (Success):**
+
+```json
+{
+  "success": true,
+  "user": {
+    "id": "catboy123",
+    "username": "catboy123",
+    "avatar": "😸"
+  }
+}
+```
+
+**Response (Error):**
+
+```json
+{
+  "error": "Invalid username or password"
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `400` - Bad request (invalid input, username exists)
+- `401` - Unauthorized (invalid credentials)
+- `500` - Internal server error
+
+---
+
+### Messages
+
+#### GET `/api/messages?channel=general`
+
+Get all messages from a specific channel.
+
+**Query Parameters:**
+- `channel` (required) - Channel ID (e.g., "general", "introductions", "cute-stuff")
+
+**Response:**
+
+```json
+{
+  "messages": [
+    {
+      "id": "1",
+      "author": {
+        "id": "demo",
+        "username": "demo",
+        "avatar": "😸"
+      },
+      "content": "Meow! This is a test message",
+      "timestamp": "2025-12-10T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `400` - Bad request (missing channel)
+- `500` - Internal server error
+
+---
+
+#### POST `/api/messages`
+
+Send a message to a channel.
+
+**Request:**
+
+```json
+{
+  "channel": "general",
+  "message": {
+    "id": "1234567890",
+    "author": {
+      "id": "demo",
+      "username": "demo",
+      "avatar": "😸"
+    },
+    "content": "Hello everyone! 🐾",
+    "timestamp": "2025-12-10T12:00:00Z"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true
+}
+```
+
+**Status Codes:**
+- `200` - Success
+- `400` - Bad request (missing channel or message)
+- `405` - Method not allowed
+- `500` - Internal server error
+
+---
+
+## Database
+
+### Development (JSON)
+
+Data is stored in the `data/` directory:
+
+- `data/users.json` - User accounts with hashed passwords
+- `data/messages.json` - Messages organized by channel
+
+### Password Hashing
+
+All passwords are hashed using **bcryptjs** with 10 salt rounds before storage. Never store plaintext passwords.
+
+### Production
+
+The database layer is abstraction-ready. Implement custom database classes inheriting from the `Database` abstract class in `lib/db.ts` to support:
+
+- MongoDB
+- PostgreSQL
+- MySQL
+- Any other database
+
+## Project Structure
+
+```
+catboychat/
+├── app/
+│   ├── api/
+│   │   └── auth/
+│   │       └── route.ts          # Authentication endpoint
+│   ├── layout.tsx                 # Root layout
+│   ├── page.tsx                   # Main chat UI
+│   └── globals.css                # Global styles
+├── pages/
+│   └── api/
+│       └── messages.ts            # Messages endpoint
+├── lib/
+│   ├── db.ts                      # Database abstraction layer
+│   └── crypto.ts                  # Password hashing utilities
+├── data/
+│   ├── users.json                 # User database (dev)
+│   └── messages.json              # Messages database (dev)
+├── .env.local                     # Environment variables
+└── package.json                   # Dependencies
+```
+
+## Technologies
+
+- **Frontend:** React, Next.js, Tailwind CSS
+- **Backend:** Next.js App Router
+- **Authentication:** bcryptjs
+- **Database:** JSON (dev), extensible for production
+- **Styling:** Tailwind CSS v4
+
+## Development Tips
+
+### Adding a New Channel
+
+1. Create the channel in the frontend (`app/page.tsx`)
+2. Add initial messages to `data/messages.json`
+
+### Switching Database Backends
+
+Update `.env.local`:
+
+```env
+DATABASE_TYPE=mongodb
+DATABASE_URL=mongodb+srv://user:pass@cluster.mongodb.net/catboychat
+```
+
+Then implement a MongoDB database class in `lib/db.ts`.
+
+## License
+
+MIT

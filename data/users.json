@@ -1,0 +1,42 @@
+{
+  "demo": {
+    "id": "demo",
+    "username": "demo",
+    "password": "$2a$10$YourHashedPasswordHereForDemo123456789",
+    "avatar": "😸",
+    "createdAt": "2025-12-10T00:00:00Z"
+  },
+  "catboy": {
+    "id": "catboy",
+    "username": "CatboyBot",
+    "password": "$2a$10$YourHashedPasswordHereForCatboy123456789",
+    "avatar": "🐱",
+    "createdAt": "2025-12-10T00:00:00Z"
+  },
+  "byteptr.xyz": {
+    "id": "byteptr.xyz",
+    "username": "byteptr.xyz",
+    "password": "$2b$10$H2JGhquYA3uk2hFAfv78OeUYcA9dT8fOGIc9m4Lb1UJdonWG5PyRq",
+    "avatar": "",
+    "createdAt": "2025-12-10T17:54:15.012Z",
+    "displayName": "byteptr.xyz",
+    "bio": "owner :3",
+    "status": "coding this shit uwu",
+    "theme": "midnight",
+    "font": "sans",
+    "accentColor": "#f570ff"
+  },
+  "cutiepie": {
+    "displayName": "cutiepie",
+    "bio": "",
+    "status": "",
+    "theme": "midnight",
+    "font": "sans",
+    "accentColor": "#a855f7",
+    "id": "cutiepie",
+    "username": "cutiepie",
+    "password": "$2b$10$X1ANz/3POUqza6x6pS1xJOjyXWmJCp0X49lXCPJxJvv4gz0gV92Wq",
+    "avatar": "https://api.dicebear.com/7.x/bottts-neutral/png?size=512&seed=cutiepie",
+    "createdAt": "2025-12-10T19:30:12.167Z"
+  }
+}

@@ -1,26 +1,185 @@
 @import "tailwindcss";
 
+/* Theme variables with runtime overrides via data-theme/data-font */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --bg-900: #0f172a;
+  --bg-800: #111827;
+  --bg-700: #1f2937;
+  --text-100: #e5e7eb;
+  --text-300: #cbd5e1;
+  --accent: #a855f7;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Smooth animations for channel/server transitions */
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes slideOutFade {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
+
+.animate-slide-in {
+  animation: slideInFade 300ms ease-out;
+}
+
+.animate-slide-out {
+  animation: slideOutFade 300ms ease-in;
+}
+
+/* Smooth transition classes */
+.transition-smooth {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme variables with runtime overrides via data-theme/data-font */
+[data-theme="midnight"] {
+  --bg-900: #0f172a;
+  --bg-800: #111827;
+  --bg-700: #1f2937;
+  --text-100: #e5e7eb;
+  --text-300: #cbd5e1;
+}
+
+[data-theme="dark"] {
+  --bg-900: #0b0f19;
+  --bg-800: #101624;
+  --bg-700: #182033;
+  --text-100: #f1f5f9;
+  --text-300: #cbd5e1;
+}
+
+[data-theme="sunset"] {
+  --bg-900: #1b1224;
+  --bg-800: #23162e;
+  --bg-700: #301c3d;
+  --text-100: #fce7f3;
+  --text-300: #f9a8d4;
+}
+
+[data-theme="mint"] {
+  --bg-900: #0f1a1a;
+  --bg-800: #112020;
+  --bg-700: #15302f;
+  --text-100: #e0f2f1;
+  --text-300: #a7f3d0;
+}
+
+/* Font presets */
+[data-font="sans"] {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+[data-font="mono"] {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+[data-font="serif"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--bg-900);
+  color: var(--text-100);
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ambient gradient and subtle grid for a more original feel */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  background: radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.14), transparent 35%),
+    radial-gradient(circle at 80% 10%, rgba(94, 234, 212, 0.12), transparent 32%),
+    radial-gradient(circle at 60% 70%, rgba(248, 113, 113, 0.12), transparent 40%);
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px, 48px 48px;
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Font overrides by user preference */
+[data-font="sans"] body {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+[data-font="mono"] body {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+[data-font="serif"] body {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+#__next,
+body > div:first-child {
+  min-height: 100vh;
+  background: var(--bg-900);
+}
+
+/* Override key Tailwind utility colors with theme vars */
+.bg-slate-900 { background-color: var(--bg-900) !important; }
+.bg-slate-800 { background-color: var(--bg-800) !important; }
+.bg-slate-700 { background-color: var(--bg-700) !important; }
+.border-slate-700 { border-color: var(--bg-700) !important; }
+.text-slate-400 { color: var(--text-300) !important; }
+.text-slate-300 { color: var(--text-100) !important; }
+.text-white { color: var(--text-100) !important; }
+
+/* Custom animations for cute effects */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
