@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { getWSServer } from "@/lib/ws-server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,14 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "0xChat",
+  title: "Catboy Chat",
   description: "meow :3",
 };
-
-// Initialize WebSocket server on app startup
-if (typeof window === "undefined") {
-  getWSServer();
-}
 
 export default function RootLayout({
   children,
