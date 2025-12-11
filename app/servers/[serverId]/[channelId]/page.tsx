@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import ChatLayout from "@/components/ChatLayout";
 import ServerList from "@/components/ServerList";
@@ -77,6 +77,37 @@ export default function ServerChat() {
 
   // Track if we've already attempted redirect to avoid loops
   const hasCheckedAuth = useRef(false);
+
+  // Cache for resolved user profiles to avoid repeated API calls
+  const profileCacheRef = useRef<Map<string, User>>(new Map());
+
+  // Function to resolve user profile by ID
+  const resolveUserProfile = useCallback(async (userId: string): Promise<User | null> => {
+    if (!token) return null;
+    
+    // Check cache first
+    if (profileCacheRef.current.has(userId)) {
+      return profileCacheRef.current.get(userId) || null;
+    }
+    
+    try {
+      const res = await fetch(`/api/profile?id=${encodeURIComponent(userId)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          profileCacheRef.current.set(userId, data.user);
+          return data.user;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to resolve profile for ${userId}:`, error);
+    }
+    return null;
+  }, [token]);
 
   // Debug logging for currentUser and profile states
   useEffect(() => {

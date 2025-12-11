@@ -12,7 +12,22 @@ export async function GET(req: NextRequest) {
 
     const db = getDatabase();
     const searchParams = req.nextUrl.searchParams;
-    const targetUsername = searchParams.get("username") || payload.username || payload.id;
+    
+    // Support querying by username or id
+    const byUsername = searchParams.get("username");
+    const byId = searchParams.get("id");
+    
+    let targetUsername: string;
+    if (byUsername) {
+      targetUsername = byUsername;
+    } else if (byId) {
+      // ID is typically the same as username in this system
+      targetUsername = byId;
+    } else {
+      // Default to current user
+      targetUsername = payload.username || payload.id;
+    }
+    
     const user = db.getUser(targetUsername);
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
