@@ -179,9 +179,12 @@ export default function Home() {
       }
 
       // Send to Web3 auth endpoint
-      const res = await fetch(getApiUrl("/api/auth/web3"), {
+      const url = getApiUrl("/api/auth/web3");
+      console.debug("app/page: fetch web3 auth", url);
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ address, message, signature }),
       });
 

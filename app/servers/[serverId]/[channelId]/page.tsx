@@ -21,6 +21,7 @@ import { extractLinksFromContent, isValidUrl } from "@/lib/link-utils";
 import { User, Message, Channel, Server } from "@/lib/types";
 import { Toast, UserNotification } from "@/lib/notification-types";
 import { env } from "process";
+import { getApiUrl } from "@/lib/api";
 
 // Decode JWT payload client-side to restore session user
 const decodeUserFromToken = (token: string): User | null => {
@@ -145,10 +146,13 @@ export default function ServerChat() {
     }
     
     try {
-      const res = await fetch(`/api/profile?id=${encodeURIComponent(userId)}`, {
+      const url = getApiUrl(`/api/profile?id=${encodeURIComponent(userId)}`);
+      console.debug("resolveUserProfile: fetching", url);
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
       });
       if (res.ok) {
         const data = await res.json();
@@ -249,10 +253,13 @@ export default function ServerChat() {
 
       for (const memberId of memberIds) {
         try {
-          const response = await fetch(`/api/profile?username=${memberId}`, {
+          const url = getApiUrl(`/api/profile?username=${memberId}`);
+          console.debug("loadMembers: fetching", url);
+          const response = await fetch(url, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            credentials: "include",
           });
           if (response.ok) {
             const data = await response.json();

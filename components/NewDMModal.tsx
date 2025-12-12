@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface User {
   id: string;

@@ -18,11 +18,14 @@ export function useProfile(token: string | null) {
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch(getApiUrl("/api/profile"), {
+      const url = getApiUrl(`/api/profile`);
+      console.debug("useProfile: fetch profile", url);
+      const res = await fetch(url, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
       });
       const data: ProfileResponse = await res.json();
       if (!res.ok) {

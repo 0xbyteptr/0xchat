@@ -29,10 +29,46 @@ export default function DMList({
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const baseInterval = 15000; // 15s when visible
+    const hiddenInterval = 60000; // 60s when hidden
+
+    const getInterval = () => (document.visibilityState === "visible" && document.hasFocus() ? baseInterval : hiddenInterval);
+
+    const poll = async () => {
+      if (cancelled || !token) return;
+      try {
+        await loadConversations();
+      } catch (err) {
+        // handled inside loadConversations
+      }
+      if (cancelled) return;
+      timeoutId = setTimeout(poll, getInterval());
+    };
+
+    const onVisibilityChange = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(poll, getInterval());
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisibilityChange);
+    window.addEventListener("blur", onVisibilityChange);
+
+    // initial load and start polling
     loadConversations();
-    // Refresh every 5 seconds
-    const interval = setInterval(loadConversations, 5000);
-    return () => clearInterval(interval);
+    timeoutId = setTimeout(poll, getInterval());
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
+      window.removeEventListener("blur", onVisibilityChange);
+    };
   }, [token]);
 
   const loadConversations = async () => {
@@ -41,13 +77,45 @@ export default function DMList({
       return;
     }
 
-    try {
-      const response = await fetch(getApiUrl("/api/dms/list"), {
+    const endpoint = "/api/dms/list";
+    const resolvedUrl = getApiUrl(endpoint);
+    console.debug("DMList: resolvedUrl", resolvedUrl);
+
+    const tryFetch = async (fetchUrl: string) => {
+      console.debug("DMList: trying fetch", fetchUrl);
+      const resp = await fetch(fetchUrl, {
         headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
+      return resp;
+    };
+
+    try {
+      let response: Response | null = null;
+
+      try {
+        response = await tryFetch(resolvedUrl);
+      } catch (err) {
+        console.warn("DMList: fetch to resolvedUrl failed, will fallback to relative endpoint", err);
+      }
+
+      // If resolved fetch failed or returned non-ok, try the site-relative path
+      if (!response || !response.ok) {
+        try {
+          response = await tryFetch(endpoint);
+        } catch (err) {
+          console.error("DMList: fallback fetch failed", err);
+          throw err;
+        }
+      }
+
+      console.debug("DMList: response", response.status, response.statusText);
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations);
+      } else {
+        console.warn("DMList: no success flag", data);
+        setError("Failed to load DMs");
       }
     } catch (err) {
       console.error("Error loading DMs:", err);
@@ -71,7 +139,7 @@ export default function DMList({
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <MessageCircle className="w-5 h-5" />
           Direct Messages
-        </h2>
+        </h2>or
 
         {conversations.length === 0 ? (
           <p className="text-gray-400 text-sm">No conversations yet</p>

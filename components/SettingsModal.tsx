@@ -54,14 +54,13 @@ export default function SettingsModal({
     }
   }, [user]);
 
-  const handleSaveAccountSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveAccountSettings = async () => {
     setError("");
     setSuccess("");
 
     if (!displayName.trim()) {
       setError("Display name cannot be empty");
-      return;
+      return false;
     }
 
     try {
@@ -74,8 +73,22 @@ export default function SettingsModal({
         setSuccess("Account settings saved successfully!");
         setTimeout(() => setSuccess(""), 3000);
       }
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save settings");
+      return false;
+    }
+  };
+
+  const handleSaveAccountSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveAccountSettings();
+  };
+
+  const saveChanges = async () => {
+    // Currently only Account tab has an explicit save flow
+    if (activeTab === "account") {
+      await saveAccountSettings();
     }
   };
 
@@ -87,12 +100,28 @@ export default function SettingsModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-700 p-6 bg-slate-900/50">
           <h2 className="text-2xl font-bold text-white">Settings</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X size={24} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => saveChanges()}
+              disabled={isLoading || activeTab !== "account"}
+              className={`px-3 py-1 rounded-md font-semibold text-sm transition ${
+                isLoading
+                  ? "bg-purple-600/50 text-white cursor-default"
+                  : "bg-purple-600 hover:bg-purple-700 text-white"
+              } ${activeTab !== "account" ? "opacity-60 cursor-not-allowed" : ""}`}
+              title={activeTab !== "account" ? "Save is available on Account tab" : "Save changes"}
+            >
+              {isLoading ? "Saving..." : "Save"}
+            </button>
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+              aria-label="Close settings"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}

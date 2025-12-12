@@ -90,8 +90,11 @@ export default function DMsPage() {
       // Load full user profile
       const loadProfile = async () => {
         try {
-          const response = await fetch(getApiUrl(`/api/profile?id=${userId}`), {
+          const profileUrl = getApiUrl(`/api/profile?id=${userId}`);
+          console.debug("DMsPage: fetch profile", profileUrl);
+          const response = await fetch(profileUrl, {
             headers: { Authorization: `Bearer ${token}` },
+            credentials: "include",
           });
           if (response.ok) {
             const data = await response.json();
@@ -114,17 +117,24 @@ export default function DMsPage() {
     if (!token) return;
     const loadServers = async () => {
       try {
-        const response = await fetch(getApiUrl("/api/servers"), {
+        const url = getApiUrl("/api/servers");
+        console.debug("DMsPage: fetch servers", url);
+        const response = await fetch(url, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}` 
           },
+          credentials: "include",
           body: JSON.stringify({ action: "list" }),
         });
+        console.debug("DMsPage: servers response", response.status, response.statusText);
         if (response.ok) {
           const data = await response.json();
           setServers(data.servers || []);
+        } else {
+          const bodyText = await response.text();
+          console.warn("DMsPage: servers fetch non-ok", response.status, bodyText);
         }
       } catch (err) {
         console.error("Failed to load servers:", err);
@@ -174,7 +184,7 @@ export default function DMsPage() {
       />
 
       {/* DM List sidebar */}
-      <div className="w-64 border-r border-gray-700 bg-gray-900/80 backdrop-blur overflow-y-auto flex flex-col hide-scrollbar">
+      <div className="w-64 border-r border-gray-700 bg-gray-900/80 backdrop-blur overflow-y-auto flex flex-col hide-scrollbar pt-14">
         {/* User Profile Card */}
         <UserProfileCard
           currentUser={currentUser}

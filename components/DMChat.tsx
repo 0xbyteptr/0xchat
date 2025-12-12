@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Send } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -52,9 +53,20 @@ export default function DMChat({
   const loadMessages = async () => {
     try {
       setError(null);
-      const response = await fetch(`/api/dms/${partnerId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const endpoint = `/api/dms/${partnerId}`;
+      const resolved = getApiUrl(endpoint);
+      console.debug("DMChat: loadMessages resolved url", resolved);
+
+      let response: Response | null = null;
+      try {
+        response = await fetch(resolved, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" });
+      } catch (err) {
+        console.warn("DMChat: resolved fetch failed, falling back to relative endpoint", err);
+      }
+
+      if (!response || !response.ok) {
+        response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" });
+      }
 
       if (!response.ok) {
         const data = await response.json();
@@ -101,14 +113,48 @@ export default function DMChat({
     }
   };
 
-  // Subscribe to real-time updates via polling
+  // Adaptive polling: poll for new messages with backoff and pause when hidden
   useEffect(() => {
-    // Poll for new messages every 2 seconds
-    const interval = setInterval(() => {
-      loadMessages();
-    }, 2000);
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const baseInterval = 5000; // 5s when visible
+    const hiddenInterval = 30000; // 30s when tab is hidden
 
-    return () => clearInterval(interval);
+    const getInterval = () => (document.visibilityState === "visible" && document.hasFocus() ? baseInterval : hiddenInterval);
+
+    const poll = async () => {
+      if (cancelled || !token || !partnerId) return;
+      try {
+        await loadMessages();
+      } catch (err) {
+        // ignore, loadMessages already logs
+      }
+      if (cancelled) return;
+      timeoutId = setTimeout(poll, getInterval());
+    };
+
+    const onVisibilityChange = () => {
+      // restart poll loop to pick up new interval
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(poll, getInterval());
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisibilityChange);
+    window.addEventListener("blur", onVisibilityChange);
+
+    // start polling
+    timeoutId = setTimeout(poll, getInterval());
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
+      window.removeEventListener("blur", onVisibilityChange);
+    };
   }, [token, partnerId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -137,14 +183,36 @@ export default function DMChat({
     setMessages((prev) => [...prev, optimisticMessage]);
 
     try {
-      const response = await fetch(`/api/dms/${partnerId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: messageContent }),
-      });
+      const endpoint = `/api/dms/${partnerId}`;
+      const resolved = getApiUrl(endpoint);
+      console.debug("DMChat: sending message to", resolved);
+
+      let response: Response | null = null;
+      try {
+        response = await fetch(resolved, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify({ content: messageContent }),
+        });
+      } catch (err) {
+        console.warn("DMChat: resolved POST failed, falling back to relative endpoint", err);
+      }
+
+      if (!response || !response.ok) {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify({ content: messageContent }),
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json();
@@ -182,15 +250,28 @@ export default function DMChat({
 
     // Notify partner that we're typing
     if (value.trim() && token) {
-      fetch(`/api/dms/${partnerId}`, {
+      const endpoint = `/api/dms/${partnerId}`;
+      const resolved = getApiUrl(endpoint);
+      fetch(resolved, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ action: "typing" }),
       }).catch(() => {
         // Silently fail - typing indicator is not critical
+        // Try fallback to relative endpoint
+        fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+          body: JSON.stringify({ action: "typing" }),
+        }).catch(() => {});
       });
     }
   };

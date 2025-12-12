@@ -8,15 +8,21 @@ export function getApiBaseUrl(): string {
     // If an explicit NEXT_PUBLIC_API_URL is set (client or env), prefer it.
     const envBase = (window as any).NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL;
     if (envBase) {
-      return normalizeBaseUrl(envBase);
+      const normalized = normalizeBaseUrl(envBase);
+      console.debug("getApiBaseUrl: using NEXT_PUBLIC_API_URL", normalized);
+      return normalized;
     }
 
     // Fallback: use same-origin host the app is served from (helps mobile/dev when using tunnel).
-    return normalizeBaseUrl(window.location.origin);
+    const origin = normalizeBaseUrl(window.location.origin);
+    console.debug("getApiBaseUrl: using window.location.origin", origin);
+    return origin;
   }
 
   // Server-side build-time fallback
-  return normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL || "");
+  const serverBase = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL || "");
+  console.debug("getApiBaseUrl (server):", serverBase);
+  return serverBase;
 }
 
 export function getApiUrl(path: string): string {

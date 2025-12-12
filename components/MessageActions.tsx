@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Edit2, Trash2, Reply, Volume2 } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface MessageActionsProps {
   messageId: string;
@@ -29,12 +30,25 @@ export default function MessageActions({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/messages/${messageId}`, {
-        method: "DELETE",
-      });
+      const endpoint = `/api/messages/${messageId}`;
+      const resolved = getApiUrl ? getApiUrl(endpoint) : endpoint;
+      console.debug("MessageActions: delete url", resolved);
 
-      if (response.ok) {
+      let response: Response | null = null;
+      try {
+        response = await fetch(resolved, { method: "DELETE", credentials: "include" });
+      } catch (err) {
+        console.warn("MessageActions: delete failed, trying relative endpoint", err);
+      }
+
+      if ((!response || !response.ok) && resolved !== endpoint) {
+        response = await fetch(endpoint, { method: "DELETE", credentials: "include" });
+      }
+
+      if (response && response.ok) {
         onDelete?.(messageId);
+      } else {
+        console.error("Failed to delete message: non-ok response", response);
       }
     } catch (error) {
       console.error("Failed to delete message:", error);
