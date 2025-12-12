@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { verifyToken, extractToken } from "@/lib/jwt";
+import { broadcast, getWSServer } from "@/lib/ws-server";
 
 export async function PATCH(
   req: NextRequest,
@@ -61,6 +62,20 @@ export async function PATCH(
 
     await fs.writeFile(messagesPath, JSON.stringify(data, null, 2));
 
+    // Broadcast edit to connected clients
+    try {
+      getWSServer();
+      broadcast(
+        JSON.stringify({
+          type: "message_edit",
+          channel: channelKey,
+          message,
+        })
+      );
+    } catch (err) {
+      console.error("WS broadcast edit error:", err);
+    }
+
     console.log(`✏️ Message edited: ${messageId}`);
     return NextResponse.json(message);
   } catch (error) {
@@ -118,6 +133,20 @@ export async function DELETE(
     data[foundChannel] = filteredChannel;
 
     await fs.writeFile(messagesPath, JSON.stringify(data, null, 2));
+
+    // Broadcast delete to connected clients
+    try {
+      getWSServer();
+      broadcast(
+        JSON.stringify({
+          type: "message_delete",
+          channel: foundChannel || null,
+          messageId,
+        })
+      );
+    } catch (err) {
+      console.error("WS broadcast delete error:", err);
+    }
 
     console.log(`🗑️ Message deleted: ${messageId}`);
     return NextResponse.json({ success: true, messageId });

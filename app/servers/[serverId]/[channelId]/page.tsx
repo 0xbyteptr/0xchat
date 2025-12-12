@@ -383,7 +383,53 @@ export default function ServerChat() {
                   : s
               )
             );
-          } else if (data?.type === "message") {
+                }
+
+                // Handle message edit broadcasts
+                if (data?.type === "message_edit" && data?.channel === `${serverId}-${channelId}`) {
+                  const incoming: Message = data.message;
+                  setServers((prev) =>
+                    prev.map((s) =>
+                      s.id === serverId
+                        ? {
+                            ...s,
+                            channels: s.channels.map((ch) =>
+                              ch.id === channelId
+                                ? {
+                                    ...ch,
+                                    messages: ch.messages.map((m) =>
+                                      m.id === incoming.id
+                                        ? { ...m, content: incoming.content, isEdited: true, editedAt: incoming.editedAt || new Date().toISOString() }
+                                        : m
+                                    ),
+                                  }
+                                : ch
+                            ),
+                          }
+                        : s
+                    )
+                  );
+                }
+
+                // Handle message delete broadcasts
+                if (data?.type === "message_delete" && data?.channel === `${serverId}-${channelId}`) {
+                  const { messageId } = data;
+                  setServers((prev) =>
+                    prev.map((s) =>
+                      s.id === serverId
+                        ? {
+                            ...s,
+                            channels: s.channels.map((ch) =>
+                              ch.id === channelId
+                                ? { ...ch, messages: ch.messages.filter((m) => m.id !== messageId) }
+                                : ch
+                            ),
+                          }
+                        : s
+                    )
+                  );
+                }
+          if (data?.type === "message") {
             console.log("📨 Message for different channel, ignoring:", {
               expectedChannel: `${serverId}-${channelId}`,
               actualChannel: data?.channel,

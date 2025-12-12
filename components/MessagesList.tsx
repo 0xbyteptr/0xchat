@@ -21,6 +21,7 @@ interface MessagesListProps {
   onRemoveReaction?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
+  onReply?: (message: Message) => void;
   currentUserId?: string;
 }
 
@@ -34,6 +35,7 @@ export default function MessagesList({
   onRemoveReaction,
   onDelete,
   onEdit,
+  onReply,
   currentUserId,
 }: MessagesListProps) {
   const [selectedMessageId, setSelectedMessageId] = useState<string>("");
@@ -124,6 +126,9 @@ export default function MessagesList({
                     minute: "2-digit",
                   })}
                 </span>
+                {message.isEdited && (
+                  <span className="text-xs italic text-gray-400"> • edited</span>
+                )}
                 {message.isPinned && (
                   <span className="text-xs flex items-center gap-1 text-amber-400">
                     <Pin size={12} />
@@ -233,6 +238,7 @@ export default function MessagesList({
             {selectedMessageId === message.id && (
               <div className="mt-2 flex gap-2">
                 <MessageActions
+                  message={message}
                   messageId={message.id}
                   isOwn={message.author.id === currentUserId}
                   onDelete={async (id) => await onDelete?.(id)}
@@ -240,9 +246,7 @@ export default function MessagesList({
                     setEditingMessageId(message.id);
                     setEditingContent(message.content);
                   }}
-                  onReply={() => {
-                    console.log("Reply to message:", message.id);
-                  }}
+                  onReply={(m) => onReply?.(m)}
                   visible={true}
                 />
               </div>

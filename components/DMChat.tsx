@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import MessageActions from "./MessageActions";
+import MarkdownContent from "./MarkdownContent";
 import { Send } from "lucide-react";
 import { getApiUrl } from "@/lib/api";
 
@@ -9,6 +11,8 @@ interface Message {
   author: { id: string; username: string; avatar: string };
   content: string;
   timestamp: string;
+  isEdited?: boolean;
+  editedAt?: string;
 }
 
 interface DMChatProps {
@@ -33,6 +37,11 @@ export default function DMChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string>("");
+  const [editingMessageId, setEditingMessageId] = useState<string>("");
+  const [editingContent, setEditingContent] = useState<string>("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -276,6 +285,116 @@ export default function DMChat({
     }
   };
 
+  // compute conversation id like server route
+  const getConversationId = (a: string, b: string) => {
+    const sorted = [a, b].sort();
+    return `dm-${sorted[0]}-${sorted[1]}`;
+  };
+
+  const getWebSocketURL = (): string => {
+    if (typeof window === "undefined") return "";
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//ws.byteptr.xyz/`;
+  };
+
+  // Initialize websocket subscription for DM updates
+  useEffect(() => {
+    if (!token || !partnerId || !currentUserId) return;
+    const channel = getConversationId(currentUserId, partnerId);
+    if (wsRef.current) return;
+    try {
+      const ws = new WebSocket(getWebSocketURL());
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "subscribe", channel }));
+      };
+      ws.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          if (data?.type === "message" && data?.channel === channel) {
+            const incoming = data.message;
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === incoming.id)) return prev;
+              return [...prev, incoming].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            });
+          }
+          if (data?.type === "message_edit" && data?.channel === channel) {
+            const incoming = data.message;
+            setMessages((prev) => prev.map((m) => (m.id === incoming.id ? { ...m, content: incoming.content, isEdited: true, editedAt: incoming.editedAt || new Date().toISOString() } : m)));
+          }
+          if (data?.type === "message_delete" && data?.channel === channel) {
+            const { messageId } = data;
+            setMessages((prev) => prev.filter((m) => m.id !== messageId));
+          }
+        } catch (err) {
+          console.warn("DM WS parse error", err);
+        }
+      };
+      ws.onerror = (err) => console.warn("DM WS error", err);
+      ws.onclose = () => { wsRef.current = null; };
+      wsRef.current = ws;
+    } catch (err) {
+      console.warn("Failed to init DM websocket", err);
+    }
+    return () => { wsRef.current?.close(); wsRef.current = null; };
+  }, [token, partnerId, currentUserId]);
+
+  // Delete DM message
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!token) return;
+    const endpoint = `/api/dms/${partnerId}/${messageId}`;
+    const resolved = getApiUrl(endpoint);
+    try {
+      let response: Response | null = null;
+      try {
+        response = await fetch(resolved, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+      } catch (err) {
+        response = await fetch(endpoint, { method: "DELETE", headers: { Authorization: `Bearer ${token}` }, credentials: "include" });
+      }
+      if (response && response.ok) {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+    } catch (err) {
+      console.error("Failed to delete DM message", err);
+    }
+  };
+
+  // Edit DM message
+  const handleEditMessage = async (messageId: string, content: string) => {
+    if (!token) return;
+    setIsSavingEdit(true);
+    const endpoint = `/api/dms/${partnerId}/${messageId}`;
+    const resolved = getApiUrl(endpoint);
+    try {
+      let response: Response | null = null;
+      try {
+        response = await fetch(resolved, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          credentials: "include",
+          body: JSON.stringify({ content }),
+        });
+      } catch (err) {
+        response = await fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, credentials: "include", body: JSON.stringify({ content }) });
+      }
+      if (response && response.ok) {
+        const data = await response.json();
+        if (data) {
+          setMessages((prev) => prev.map((m) => (m.id === data.id ? data : m)));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to edit DM message", err);
+    } finally {
+      setIsSavingEdit(false);
+      setEditingMessageId("");
+      setEditingContent("");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-linear-to-b from-slate-900 via-slate-800 to-slate-900 hide-scrollbar">
       {/* Header */}
@@ -322,6 +441,8 @@ export default function DMChat({
           return (
             <div
               key={msg.id}
+              onMouseEnter={() => setSelectedMessageId(msg.id)}
+              onMouseLeave={() => setSelectedMessageId("")}
               className={`flex ${authorId === partnerId ? "justify-start" : "justify-end"}`}
             >
               <div
@@ -331,13 +452,63 @@ export default function DMChat({
                     : "bg-purple-600 text-white"
                 }`}
               >
-                <p className="wrap-break-word">{msg.content}</p>
-                <span className="text-xs opacity-70 block mt-1">
-                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+                {editingMessageId === msg.id ? (
+                  <div>
+                    <textarea
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      className="w-full rounded-xl bg-slate-700/50 border border-slate-600/50 px-3 py-2 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                      rows={3}
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={async () => {
+                          if (!editingContent.trim()) return;
+                          await handleEditMessage(msg.id, editingContent);
+                        }}
+                        className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white"
+                      >
+                        {isSavingEdit ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingMessageId("");
+                          setEditingContent("");
+                        }}
+                        className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <MarkdownContent content={msg.content} onMentionClick={() => {}} />
+                    {msg.isEdited && (
+                      <span className="text-xs italic text-gray-300 block mt-1">• edited</span>
+                    )}
+                    <span className="text-xs opacity-70 block mt-1">
+                      {new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {selectedMessageId === msg.id && (
+                      <div className="mt-2 flex gap-2">
+                        <MessageActions
+                          messageId={msg.id}
+                          isOwn={authorId === currentUserId}
+                          onDelete={async (id) => await handleDeleteMessage(id)}
+                          onEdit={() => {
+                            setEditingMessageId(msg.id);
+                            setEditingContent(msg.content);
+                          }}
+                          visible={true}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           );

@@ -36,6 +36,8 @@ A short reference of the major API endpoints, HTTP methods and locations:
 - `DELETE /api/messages/:id` — delete a message (author-only). Requires Authorization Bearer token: [app/api/messages/[id]/route.ts](app/api/messages/[id]/route.ts#L1)
 - `GET /api/dms` — list DMs and conversations: [app/api/dms/route.ts](app/api/dms/route.ts#L1)
 - `POST /api/dms/:userId` — send a DM to user: [app/api/dms/route.ts](app/api/dms/route.ts#L1)
+- `PATCH /api/dms/:userId/:messageId` — edit a DM message (author-only). Request body: `{ "content": "updated text" }` (requires Authorization Bearer token): [app/api/dms/[userId]/[messageId]/route.ts](app/api/dms/[userId]/[messageId]/route.ts#L1)
+- `DELETE /api/dms/:userId/:messageId` — delete a DM message (author-only). Requires Authorization Bearer token: [app/api/dms/[userId]/[messageId]/route.ts](app/api/dms/[userId]/[messageId]/route.ts#L1)
 
 ### Friends, Servers, Invites & Roles
 - `POST /api/friend/invite` — create friend invite: [app/api/friend/invite/route.ts](app/api/friend/invite/route.ts#L1)
@@ -55,6 +57,7 @@ WebSocket Events (broadcast from server):
 - `message` — a new message was posted. Payload: `{ type: "message", channel: "<serverId>-<channelId>", message: Message }`
 - `message_edit` — an existing message was edited. Payload: `{ type: "message_edit", channel: "<serverId>-<channelId>", message: Message }`
 - `message_delete` — a message was deleted. Payload: `{ type: "message_delete", channel: "<serverId>-<channelId>", messageId: string }`
+  - Note: For DMs, `channel` will be a conversation id formatted as `dm-<userA>-<userB>`.
 
 Clients should listen for these event types and update the UI accordingly (e.g., editing inline message content or removing a message). Edits include `editedAt` and `isEdited` fields on the message when applicable.
 

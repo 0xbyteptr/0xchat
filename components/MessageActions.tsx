@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { Edit2, Trash2, Reply, Volume2 } from "lucide-react";
+import { Message } from "@/lib/types";
 import { getApiUrl } from "@/lib/api";
 
 interface MessageActionsProps {
+  message?: Message;
   messageId: string;
   isOwn: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
-  onReply?: (messageId: string) => void;
+  onReply?: (message: Message) => void;
   onRecord?: () => void;
   visible?: boolean;
 }
@@ -27,31 +29,11 @@ export default function MessageActions({
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this message?")) return;
-
     setIsDeleting(true);
     try {
-      const endpoint = `/api/messages/${messageId}`;
-      const resolved = getApiUrl ? getApiUrl(endpoint) : endpoint;
-      console.debug("MessageActions: delete url", resolved);
-
-      let response: Response | null = null;
-      try {
-        response = await fetch(resolved, { method: "DELETE", credentials: "include" });
-      } catch (err) {
-        console.warn("MessageActions: delete failed, trying relative endpoint", err);
-      }
-
-      if ((!response || !response.ok) && resolved !== endpoint) {
-        response = await fetch(endpoint, { method: "DELETE", credentials: "include" });
-      }
-
-      if (response && response.ok) {
-        onDelete?.(messageId);
-      } else {
-        console.error("Failed to delete message: non-ok response", response);
-      }
+      await onDelete?.(messageId);
     } catch (error) {
-      console.error("Failed to delete message:", error);
+      console.error("Failed to delete message via parent handler:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -63,7 +45,7 @@ export default function MessageActions({
     <div className="flex gap-1 flex-wrap">
       {/* Reply button (always available) */}
       <button
-        onClick={() => onReply?.(messageId)}
+        onClick={() => onReply?.({ id: messageId, author: { id: "", username: "", avatar: "" }, content: "", timestamp: new Date().toISOString() })}
         className="text-xs px-2 py-1 rounded bg-slate-700/60 hover:bg-slate-600 text-gray-300 hover:text-white transition flex items-center gap-1 group"
         title="Reply to message"
       >
