@@ -12,7 +12,7 @@ const SALT_ROUNDS = 10;
 const DATA_DIR = path.join(__dirname, "..", "data");
 
 async function setup() {
-  console.log("🐱 CatboyChat - Setup Script\n");
+  console.log("🐱 0xChat - Setup Script\n");
 
   // Create data directory if it doesn't exist
   if (!fs.existsSync(DATA_DIR)) {
@@ -54,7 +54,7 @@ async function setup() {
       {
         id: "1",
         author: { id: "catboy", username: "CatboyBot", avatar: "🐱" },
-        content: "Meow! Welcome to CatboyChat! 💕",
+        content: "Meow! Welcome to 0xChat! 💕",
         timestamp: new Date().toISOString(),
       },
     ],

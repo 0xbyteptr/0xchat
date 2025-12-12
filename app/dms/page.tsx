@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/hooks";
 import DMList from "@/components/DMList";
 import DMChat from "@/components/DMChat";
 import ServerList from "@/components/ServerList";
 import NewDMModal from "@/components/NewDMModal";
+import UserProfileCard from "@/components/UserProfileCard";
+import ProfileModal from "@/components/ProfileModal";
+import SettingsModal from "@/components/SettingsModal";
+import AppTopBar from "@/components/AppTopBar";
+import ToastContainer from "@/components/ToastContainer";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { User } from "@/lib/types";
+import { Toast, UserNotification } from "@/lib/notification-types";
 
 export default function DMsPage() {
   const router = useRouter();
@@ -19,6 +26,41 @@ export default function DMsPage() {
   const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>("");
   const [isNewDMModalOpen, setIsNewDMModalOpen] = useState(false);
   const [servers, setServers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Notification state
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+
+  // Toast management
+  const addToast = useCallback((toast: Toast) => {
+    setToasts((prev) => [...prev, toast]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Notification management
+  const markNotificationAsRead = useCallback((notificationId: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+    );
+  }, []);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
+
+  const dismissNotification = useCallback((notificationId: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+  }, []);
+
+  const acceptNotification = useCallback((notification: UserNotification) => {
+    console.log("Accepting notification:", notification);
+  }, []);
 
   useEffect(() => {
     loadToken();
@@ -26,7 +68,7 @@ export default function DMsPage() {
     return () => clearTimeout(timer);
   }, [loadToken]);
 
-  // Decode current user from token
+  // Decode current user from token and load profile
   useEffect(() => {
     if (!token) return;
     try {
@@ -41,7 +83,26 @@ export default function DMsPage() {
             .join("")
         )
       );
-      setCurrentUserId(decoded.id || "");
+      const userId = decoded.id || "";
+      setCurrentUserId(userId);
+
+      // Load full user profile
+      const loadProfile = async () => {
+        try {
+          const response = await fetch(`/api/profile?id=${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              setCurrentUser(data.user as User);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load user profile:", err);
+        }
+      };
+      loadProfile();
     } catch (err) {
       console.error("Failed to decode token:", err);
     }
@@ -113,6 +174,13 @@ export default function DMsPage() {
 
       {/* DM List sidebar */}
       <div className="w-64 border-r border-gray-700 bg-gray-900/80 backdrop-blur overflow-y-auto flex flex-col hide-scrollbar">
+        {/* User Profile Card */}
+        <UserProfileCard
+          currentUser={currentUser}
+          onProfileClick={() => setIsProfileOpen(true)}
+          onSettingsClick={() => setIsSettingsOpen(true)}
+        />
+
         <div className="p-4 flex-1">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-bold text-white">Messages</h1>
@@ -164,6 +232,50 @@ export default function DMsPage() {
           setSelectedUserName(userName);
           setSelectedUserAvatar(avatar);
         }}
+      />
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        isLoading={false}
+        profile={currentUser}
+        onClose={() => setIsProfileOpen(false)}
+        onSave={async (updates: any) => {
+          setCurrentUser((prev) => ({ ...prev, ...updates } as User));
+          setIsProfileOpen(false);
+          return { ...currentUser, ...updates } as User;
+        }}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        isLoading={false}
+        user={currentUser}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={async (updates: any) => {
+          setCurrentUser((prev) => ({ ...prev, ...updates } as User));
+        }}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+        }}
+      />
+
+      {/* App Top Bar */}
+      <AppTopBar
+        currentUser={currentUser}
+        notifications={notifications}
+        onMarkNotificationAsRead={markNotificationAsRead}
+        onMarkAllNotificationsAsRead={markAllNotificationsAsRead}
+        onDismissNotification={dismissNotification}
+        onAcceptNotification={acceptNotification}
+      />
+
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={dismissToast}
       />
     </div>
   );

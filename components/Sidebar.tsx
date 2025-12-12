@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { User, Channel, Server } from "@/lib/types";
-import { UserCircle, LogOut, Send } from "lucide-react";
+import { UserCircle, Settings, Send } from "lucide-react";
 
 interface SidebarProps {
   currentUser: User | null;
@@ -11,6 +11,7 @@ interface SidebarProps {
   selectedChannelId: string;
   onChannelSelect: (channelId: string) => void;
   onProfileClick: () => void;
+  onSettingsClick: () => void;
   onLogout: () => void;
   onShowInvite?: () => void;
 }
@@ -22,6 +23,7 @@ export default function Sidebar({
   selectedChannelId,
   onChannelSelect,
   onProfileClick,
+  onSettingsClick,
   onLogout,
   onShowInvite,
 }: SidebarProps) {
@@ -108,11 +110,11 @@ export default function Sidebar({
             <span>Profile</span>
           </button>
           <button
-            onClick={onLogout}
-            className="flex-1 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-300 hover:text-red-200 px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            onClick={onSettingsClick}
+            className="flex-1 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-white px-3 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
-            <LogOut size={16} />
-            <span>Logout</span>
+            <Settings size={16} />
+            <span>Settings</span>
           </button>
         </div>
       </div>

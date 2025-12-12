@@ -18,7 +18,7 @@ export default function ServerList({
   onCreateClick,
 }: ServerListProps) {
   return (
-    <div className="flex flex-col gap-2 p-3 bg-slate-950 border-r border-slate-700 w-20 items-center">
+    <div className="flex flex-col gap-2 p-3 pt-17 bg-slate-950 border-r border-slate-700 w-20 items-center">
       {/* Create Server Button */}
       <button
         onClick={onCreateClick}

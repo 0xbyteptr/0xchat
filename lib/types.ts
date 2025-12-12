@@ -4,10 +4,30 @@ interface User {
   avatar: string;
   displayName?: string;
   bio?: string;
-  status?: string;
+  status?: "online" | "away" | "offline" | "dnd"; // do not disturb
   theme?: "dark" | "midnight" | "sunset" | "mint";
   font?: "sans" | "mono" | "serif";
   accentColor?: string;
+}
+
+interface Reaction {
+  emoji: string;
+  count: number;
+  userReacted: boolean;
+}
+
+interface Mention {
+  userId: string;
+  username: string;
+  start: number;
+  end: number;
+}
+
+interface MessageReply {
+  messageId: string;
+  authorId: string;
+  authorUsername: string;
+  content: string; // Preview of replied message
 }
 
 interface Message {
@@ -15,6 +35,15 @@ interface Message {
   author: User;
   content: string;
   timestamp: Date | string;
+  reactions?: Record<string, Reaction>;
+  isPinned?: boolean;
+  attachments?: { name: string; size: number; type: string; url: string }[];
+  links?: string[]; // URLs found in message content
+  editedAt?: Date | string; // When message was last edited
+  isEdited?: boolean; // Flag to show message was edited
+  replyTo?: MessageReply; // Reply to another message
+  mentions?: Mention[]; // @mentions in message
+  voiceUrl?: string; // Voice message URL
 }
 
 interface DM {
@@ -88,4 +117,4 @@ interface Invite {
   active: boolean;
 }
 
-export type { User, Message, Channel, Server, Invite, ServerRole, ServerMember, Permission, DM, FriendInvite };
+export type { User, Message, Channel, Server, Invite, ServerRole, ServerMember, Permission, DM, FriendInvite, Mention, MessageReply };

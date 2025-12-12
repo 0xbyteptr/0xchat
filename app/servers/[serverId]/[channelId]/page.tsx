@@ -3,17 +3,23 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import ChatLayout from "@/components/ChatLayout";
+import AppTopBar from "@/components/AppTopBar";
 import ServerList from "@/components/ServerList";
 import CreateServerModal from "@/components/CreateServerModal";
 import InviteModal from "@/components/InviteModal";
 import ServerOverview from "@/components/ServerOverview";
 import ProfileModal from "@/components/ProfileModal";
 import ViewProfileModal from "@/components/ViewProfileModal";
+import SettingsModal from "@/components/SettingsModal";
+import PinnedMessages from "@/components/PinnedMessages";
+import ToastContainer from "@/components/ToastContainer";
 import { useAuth } from "@/lib/hooks";
 import { useMessages } from "@/lib/messages";
 import { useServers } from "@/lib/servers";
 import { useProfile } from "@/lib/profile";
+import { extractLinksFromContent, isValidUrl } from "@/lib/link-utils";
 import { User, Message, Channel, Server } from "@/lib/types";
+import { Toast, UserNotification } from "@/lib/notification-types";
 import { env } from "process";
 
 // Decode JWT payload client-side to restore session user
@@ -66,11 +72,13 @@ export default function ServerChat() {
   const [inviteCode, setInviteCode] = useState("");
   const [serverError, setServerError] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [viewProfileUser, setViewProfileUser] = useState<User | null>(null);
   const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [serverMembers, setServerMembers] = useState<User[]>([]);
+  const [isPinnedMessagesOpen, setIsPinnedMessagesOpen] = useState(false);
 
   const {
     token,
@@ -87,6 +95,44 @@ export default function ServerChat() {
 
   // Cache for resolved user profiles to avoid repeated API calls
   const profileCacheRef = useRef<Map<string, User>>(new Map());
+
+  // Notification state
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+
+  // Toast management
+  const addToast = useCallback((toast: Toast) => {
+    setToasts((prev) => [...prev, toast]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Notification management
+  const markNotificationAsRead = useCallback((notificationId: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+    );
+  }, []);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
+
+  const dismissNotification = useCallback((notificationId: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+  }, []);
+
+  const acceptNotification = useCallback((notification: UserNotification) => {
+    console.log("Accepting notification:", notification);
+    // Handle based on type
+    if (notification.type === "serverInvite" && notification.data?.inviteCode) {
+      console.log("Accepting server invite:", notification.data.inviteCode);
+    } else if (notification.type === "friendRequest") {
+      console.log("Accepting friend request from:", notification.from.username);
+    }
+  }, []);
 
   // Function to resolve user profile by ID
   const resolveUserProfile = useCallback(async (userId: string): Promise<User | null> => {
@@ -284,6 +330,12 @@ export default function ServerChat() {
           const data = JSON.parse(event.data);
           console.log("📩 WS message received:", data);
           
+          // Ignore subscribe confirmations
+          if (data?.type === "subscribe") {
+            console.log("✅ Subscribed to channel:", data?.channel);
+            return;
+          }
+          
           if (data?.type === "message" && data?.channel === `${serverId}-${channelId}`) {
             let incoming: Message = data.message;
             console.log("✨ Message object:", incoming);
@@ -323,9 +375,8 @@ export default function ServerChat() {
                   : s
               )
             );
-          } else {
-            console.log("❌ Message type/channel mismatch:", {
-              type: data?.type,
+          } else if (data?.type === "message") {
+            console.log("📨 Message for different channel, ignoring:", {
               expectedChannel: `${serverId}-${channelId}`,
               actualChannel: data?.channel,
             });
@@ -387,7 +438,7 @@ export default function ServerChat() {
     return invite?.id || null;
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent, files?: File[]) => {
     e.preventDefault();
     if (!messageInput.trim() || !serverId || !channelId || !token) return;
 
@@ -416,11 +467,31 @@ export default function ServerChat() {
     
     console.log("✍️ Message author being sent:", messageAuthor);
 
+    // Process attachments
+    const attachments = files ? files.map((f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      url: URL.createObjectURL(f), // In production, upload to server and get real URL
+    })) : undefined;
+
+    // Extract links from message content
+    const links = extractLinksFromContent(messageInput)
+      .filter(isValidUrl);
+    
+    console.log("🔍 Link extraction result:", {
+      content: messageInput,
+      linksFound: links,
+      linksCount: links.length,
+    });
+
     const newMessage: Message = {
       id: Date.now().toString(),
       author: messageAuthor,
       content: messageInput,
       timestamp: new Date().toISOString(),
+      attachments,
+      links: links.length > 0 ? links : undefined,
     };
 
     // Optimistically update UI
@@ -471,6 +542,13 @@ export default function ServerChat() {
     return updated;
   };
 
+  const handleSettingsSave = async (updates: Partial<User>) => {
+    const updated = await updateProfile(updates);
+    if (updated) {
+      setCurrentUser((prev) => ({ ...prev, ...updated } as User));
+    }
+  };
+
   const handleAvatarClick = async (user: User) => {
     if (!user?.username) return;
     const full = await loadProfileByUsername(user.username);
@@ -495,6 +573,88 @@ export default function ServerChat() {
     setTimeout(() => {
       router.push(`/servers/${serverId}/${id}`);
     }, 150);
+  };
+
+  const handleAddReaction = (messageId: string, emoji: string) => {
+    setServers((prev) =>
+      prev.map((s) =>
+        s.id === serverId
+          ? {
+              ...s,
+              channels: s.channels.map((ch) =>
+                ch.id === channelId
+                  ? {
+                      ...ch,
+                      messages: ch.messages.map((m) => {
+                        if (m.id === messageId) {
+                          const reactions = m.reactions ? { ...m.reactions } : {};
+                          const existingReaction = reactions[emoji];
+                          
+                          if (existingReaction) {
+                            // User already reacted, increment count
+                            reactions[emoji] = {
+                              emoji,
+                              count: existingReaction.count + 1,
+                              userReacted: true,
+                            };
+                          } else {
+                            // New reaction
+                            reactions[emoji] = {
+                              emoji,
+                              count: 1,
+                              userReacted: true,
+                            };
+                          }
+                          return { ...m, reactions };
+                        }
+                        return m;
+                      }),
+                    }
+                  : ch
+              ),
+            }
+          : s
+      )
+    );
+  };
+
+  const handleRemoveReaction = (messageId: string, emoji: string) => {
+    setServers((prev) =>
+      prev.map((s) =>
+        s.id === serverId
+          ? {
+              ...s,
+              channels: s.channels.map((ch) =>
+                ch.id === channelId
+                  ? {
+                      ...ch,
+                      messages: ch.messages.map((m) => {
+                        if (m.id === messageId) {
+                          const reactions = { ...m.reactions };
+                          const existingReaction = reactions[emoji];
+                          
+                          if (existingReaction && existingReaction.count > 1) {
+                            // Decrement count
+                            reactions[emoji] = {
+                              emoji,
+                              count: existingReaction.count - 1,
+                              userReacted: false,
+                            };
+                          } else {
+                            // Remove reaction completely
+                            delete reactions[emoji];
+                          }
+                          return { ...m, reactions };
+                        }
+                        return m;
+                      }),
+                    }
+                  : ch
+              ),
+            }
+          : s
+      )
+    );
   };
 
   const handleLogout = () => {
@@ -534,20 +694,24 @@ export default function ServerChat() {
           <ChatLayout
             currentUser={currentUser}
             server={selectedServer}
-          channels={channels}
-          selectedChannelId={channelId}
-          messageInput={messageInput}
-          messagesEndRef={messagesEndRef}
-          onChannelSelect={handleChannelSelect}
-          onMessageInputChange={setMessageInput}
-          onSendMessage={handleSendMessage}
-          onAvatarClick={handleAvatarClick}
-          onProfileClick={() => setIsProfileOpen(true)}
-          onLogout={handleLogout}
-          onShowInvite={() => setIsInviteModalOpen(true)}
-          onShowOverview={() => setIsOverviewOpen(true)}
-          serverMembers={serverMembers}
-        />
+            channels={channels}
+            selectedChannelId={channelId}
+            messageInput={messageInput}
+            messagesEndRef={messagesEndRef}
+            onChannelSelect={handleChannelSelect}
+            onMessageInputChange={setMessageInput}
+            onSendMessage={handleSendMessage}
+            onAvatarClick={handleAvatarClick}
+            onProfileClick={() => setIsProfileOpen(true)}
+            onSettingsClick={() => setIsSettingsOpen(true)}
+            onLogout={handleLogout}
+            onShowInvite={() => setIsInviteModalOpen(true)}
+            onShowOverview={() => setIsOverviewOpen(true)}
+            onShowPinnedMessages={() => setIsPinnedMessagesOpen(true)}
+            onAddReaction={handleAddReaction}
+            onRemoveReaction={handleRemoveReaction}
+            serverMembers={serverMembers}
+          />
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -630,10 +794,93 @@ export default function ServerChat() {
         onSave={handleProfileSave}
       />
 
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        isLoading={isProfileLoading}
+        user={currentUser}
+        onClose={() => setIsSettingsOpen(false)}
+        onSave={handleSettingsSave}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+        }}
+      />
+
       <ViewProfileModal
         isOpen={isViewProfileOpen}
         user={viewProfileUser}
         onClose={() => setIsViewProfileOpen(false)}
+      />
+
+      <PinnedMessages
+        isOpen={isPinnedMessagesOpen}
+        pinnedMessages={selectedServer?.channels.find((ch) => ch.id === channelId)?.messages.filter((m) => m.isPinned) || []}
+        onClose={() => setIsPinnedMessagesOpen(false)}
+        onUnpin={(messageId) => {
+          // Handle unpin - update message isPinned to false
+          setServers((prev) =>
+            prev.map((s) =>
+              s.id === serverId
+                ? {
+                    ...s,
+                    channels: s.channels.map((ch) =>
+                      ch.id === channelId
+                        ? {
+                            ...ch,
+                            messages: ch.messages.map((m) =>
+                              m.id === messageId ? { ...m, isPinned: false } : m
+                            ),
+                          }
+                        : ch
+                    ),
+                  }
+                : s
+            )
+          );
+        }}
+        onDeletePin={(messageId) => {
+          // Handle delete - remove message from channel
+          setServers((prev) =>
+            prev.map((s) =>
+              s.id === serverId
+                ? {
+                    ...s,
+                    channels: s.channels.map((ch) =>
+                      ch.id === channelId
+                        ? {
+                            ...ch,
+                            messages: ch.messages.filter((m) => m.id !== messageId),
+                          }
+                        : ch
+                    ),
+                  }
+                : s
+            )
+          );
+        }}
+        onJumpToMessage={(messageId) => {
+          // Jump to message in chat
+          setTimeout(() => {
+            const messageEl = document.getElementById(`message-${messageId}`);
+            messageEl?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }}
+      />
+
+      {/* App Top Bar */}
+      <AppTopBar
+        currentUser={currentUser}
+        notifications={notifications}
+        onMarkNotificationAsRead={markNotificationAsRead}
+        onMarkAllNotificationsAsRead={markAllNotificationsAsRead}
+        onDismissNotification={dismissNotification}
+        onAcceptNotification={acceptNotification}
+      />
+
+      {/* Toast Container */}
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={dismissToast}
       />
     </div>
   );
