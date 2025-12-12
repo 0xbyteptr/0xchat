@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesList from "@/components/MessagesList";
 import MessageInput from "@/components/MessageInput";
-import UserProfileCard from "@/components/UserProfileCard";
+import MessageReplyPreview from "@/components/MessageReplyPreview";
 import { RefObject } from "react";
 
 interface ChatLayoutProps {
@@ -30,6 +30,10 @@ interface ChatLayoutProps {
   onRemoveReaction?: (messageId: string, emoji: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onEditMessage?: (messageId: string, content: string) => void;
+  onPinMessage?: (message: Message) => void;
+  replyMessage?: Message | null;
+  onReplyMessage?: (message: Message) => void;
+  onClearReply?: () => void;
   serverMembers?: User[];
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
@@ -57,6 +61,10 @@ export default function ChatLayout({
   onRemoveReaction,
   onDeleteMessage,
   onEditMessage,
+  onPinMessage,
+  replyMessage,
+  onReplyMessage,
+  onClearReply,
   serverMembers = [],
   isSidebarOpen = false,
   onToggleSidebar,
@@ -114,23 +122,35 @@ export default function ChatLayout({
           onAvatarClick={onAvatarClick}
           onMentionClick={onMentionClick}
           currentUserId={currentUser?.id}
-          onPinMessage={(messageId) => {
-            // Pin message logic will be handled in parent component
-          }}
+          onPinMessage={onPinMessage}
           onAddReaction={onAddReaction}
           onRemoveReaction={onRemoveReaction}
           onDelete={onDeleteMessage}
           onEdit={onEditMessage}
+          onReply={onReplyMessage}
         />
 
-        <MessageInput
-          value={messageInput}
-          placeholder={`Message #${selectedChannel?.name}`}
-          disabled={false}
-          onChange={onMessageInputChange}
-          onSubmit={onSendMessage}
-          availableUsers={serverMembers}
-        />
+        <div className="px-8">
+          {replyMessage && (
+            <MessageReplyPreview
+              reply={{
+                messageId: replyMessage.id,
+                authorId: replyMessage.author.id,
+                authorUsername: replyMessage.author.username,
+                content: replyMessage.content,
+              }}
+              onClear={onClearReply}
+            />
+          )}
+          <MessageInput
+            value={messageInput}
+            placeholder={`Message #${selectedChannel?.name}`}
+            disabled={false}
+            onChange={onMessageInputChange}
+            onSubmit={onSendMessage}
+            availableUsers={serverMembers}
+          />
+        </div>
       </div>
 
       {/* Members List */}

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Edit2, Trash2, Reply, Volume2 } from "lucide-react";
 import { Message } from "@/lib/types";
-import { getApiUrl } from "@/lib/api";
 
 interface MessageActionsProps {
   message?: Message;
@@ -17,6 +16,7 @@ interface MessageActionsProps {
 }
 
 export default function MessageActions({
+  message,
   messageId,
   isOwn,
   onEdit,
@@ -45,7 +45,17 @@ export default function MessageActions({
     <div className="flex gap-1 flex-wrap">
       {/* Reply button (always available) */}
       <button
-        onClick={() => onReply?.({ id: messageId, author: { id: "", username: "", avatar: "" }, content: "", timestamp: new Date().toISOString() })}
+        onClick={() =>
+          onReply?.(
+            message ??
+              {
+                id: messageId,
+                author: { id: "", username: "", avatar: "" },
+                content: "",
+                timestamp: new Date().toISOString(),
+              }
+          )
+        }
         className="text-xs px-2 py-1 rounded bg-slate-700/60 hover:bg-slate-600 text-gray-300 hover:text-white transition flex items-center gap-1 group"
         title="Reply to message"
       >

@@ -16,7 +16,7 @@ interface MessagesListProps {
   messagesEndRef: RefObject<HTMLDivElement>;
   onAvatarClick?: (user: Message["author"]) => void;
   onMentionClick?: (username: string) => void;
-  onPinMessage?: (messageId: string) => void;
+  onPinMessage?: (message: Message) => void;
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
@@ -86,6 +86,7 @@ export default function MessagesList({
       {messagesWithLinks.map((message, index) => (
         <div
           key={message.id}
+          id={`message-${message.id}`}
           className="flex gap-4 hover:bg-slate-800/40 px-4 py-2 rounded-lg transition animate-slide-in group"
           style={{
             animationDelay: `${index * 30}ms`,
@@ -138,14 +139,27 @@ export default function MessagesList({
               </div>
               {selectedMessageId === message.id && (
                 <button
-                  onClick={() => onPinMessage?.(message.id)}
+                  onClick={() => onPinMessage?.(message)}
                   className="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-gray-300 hover:text-white transition flex items-center gap-1"
+                  title={message.isPinned ? "Unpin message" : "Pin message"}
                 >
                   <Pin size={14} />
-                  Pin
+                  {message.isPinned ? "Unpin" : "Pin"}
                 </button>
               )}
             </div>
+            {message.replyTo && (
+              <div className="mt-2 mb-2 rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2 text-xs text-gray-300">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-300">
+                  Replying to {message.replyTo.authorUsername}
+                </p>
+                <p className="text-sm text-gray-100 truncate">
+                  {message.replyTo.content.length > 120
+                    ? `${message.replyTo.content.substring(0, 120)}...`
+                    : message.replyTo.content}
+                </p>
+              </div>
+            )}
             {editingMessageId === message.id ? (
               <div className="mt-2">
                 <textarea

@@ -63,6 +63,7 @@ export default function ServerChat() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [messageInput, setMessageInput] = useState("");
+  const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
@@ -314,6 +315,35 @@ export default function ServerChat() {
     scrollToBottom();
   }, [channelId, servers]);
 
+  useEffect(() => {
+    setReplyMessage(null);
+  }, [channelId]);
+
+  const updateMessagePinState = useCallback(
+    (messageId: string, isPinned: boolean) => {
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? {
+                ...s,
+                channels: s.channels.map((ch) =>
+                  ch.id === channelId
+                    ? {
+                        ...ch,
+                        messages: ch.messages.map((m) =>
+                          m.id === messageId ? { ...m, isPinned } : m
+                        ),
+                      }
+                    : ch
+                ),
+              }
+            : s
+        )
+      );
+    },
+    [serverId, channelId]
+  );
+
   // Initialize websocket when logged in
   useEffect(() => {
     if (!isLoggedIn || !currentUser) return;
@@ -429,6 +459,12 @@ export default function ServerChat() {
                     )
                   );
                 }
+                if (data?.type === "message_pin" && data?.channel === `${serverId}-${channelId}`) {
+                  const { messageId, isPinned } = data;
+                  if (messageId) {
+                    updateMessagePinState(messageId, Boolean(isPinned));
+                  }
+                }
           if (data?.type === "message") {
             console.log("📨 Message for different channel, ignoring:", {
               expectedChannel: `${serverId}-${channelId}`,
@@ -459,7 +495,7 @@ export default function ServerChat() {
         wsRef.current = null;
       }
     };
-  }, [isLoggedIn, currentUser, serverId, channelId, setServers]);
+  }, [isLoggedIn, currentUser, serverId, channelId, updateMessagePinState]);
 
   const handleCreateServer = async (name: string, description: string, icon?: string) => {
     setServerError("");
@@ -490,6 +526,15 @@ export default function ServerChat() {
   const handleCreateInvite = async (serverId: string) => {
     const invite = await createInvite(serverId);
     return invite?.id || null;
+  };
+
+  const handleReplyMessage = (message: Message) => {
+    setReplyMessage(message);
+    scrollToBottom();
+  };
+
+  const clearReplyMessage = () => {
+    setReplyMessage(null);
   };
 
   const handleSendMessage = async (e: React.FormEvent, files?: File[]) => {
@@ -539,6 +584,15 @@ export default function ServerChat() {
       linksCount: links.length,
     });
 
+    const replyPayload = replyMessage
+      ? {
+          messageId: replyMessage.id,
+          authorId: replyMessage.author.id,
+          authorUsername: replyMessage.author.username,
+          content: replyMessage.content,
+        }
+      : undefined;
+
     const newMessage: Message = {
       id: Date.now().toString(),
       author: messageAuthor,
@@ -546,6 +600,7 @@ export default function ServerChat() {
       timestamp: new Date().toISOString(),
       attachments,
       links: links.length > 0 ? links : undefined,
+      replyTo: replyPayload,
     };
 
     // Optimistically update UI
@@ -586,6 +641,7 @@ export default function ServerChat() {
     }
 
     setMessageInput("");
+    setReplyMessage(null);
   };
 
   const handleProfileSave = async (updates: Partial<User>) => {
@@ -816,6 +872,43 @@ export default function ServerChat() {
     }
   };
 
+  const handlePinMessage = async (message: Message, targetState?: boolean) => {
+    if (!token) return;
+    const desiredState = typeof targetState === "boolean" ? targetState : !message.isPinned;
+    const endpoint = `/api/messages/${message.id}/pin`;
+    const resolvedUrl = getApiUrl(endpoint);
+    const requestOptions: RequestInit = {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ isPinned: desiredState }),
+    };
+
+    let res: Response | null = null;
+    try {
+      res = await fetch(resolvedUrl, requestOptions);
+    } catch (err) {
+      console.warn("Pin message failed, trying relative endpoint", err);
+    }
+
+    if ((!res || !res.ok) && resolvedUrl !== endpoint) {
+      try {
+        res = await fetch(endpoint, requestOptions);
+      } catch (err) {
+        console.warn("Pin message fallback failed", err);
+      }
+    }
+
+    if (res && res.ok) {
+      updateMessagePinState(message.id, desiredState);
+    } else {
+      console.error("Failed to toggle pin state", res);
+    }
+  };
+
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
@@ -871,6 +964,10 @@ export default function ServerChat() {
             onRemoveReaction={handleRemoveReaction}
             onDeleteMessage={handleDeleteMessage}
             onEditMessage={handleEditMessage}
+            onPinMessage={handlePinMessage}
+            replyMessage={replyMessage}
+            onReplyMessage={handleReplyMessage}
+            onClearReply={clearReplyMessage}
             serverMembers={serverMembers}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
@@ -980,47 +1077,14 @@ export default function ServerChat() {
         pinnedMessages={selectedServer?.channels.find((ch) => ch.id === channelId)?.messages.filter((m) => m.isPinned) || []}
         onClose={() => setIsPinnedMessagesOpen(false)}
         onUnpin={(messageId) => {
-          // Handle unpin - update message isPinned to false
-          setServers((prev) =>
-            prev.map((s) =>
-              s.id === serverId
-                ? {
-                    ...s,
-                    channels: s.channels.map((ch) =>
-                      ch.id === channelId
-                        ? {
-                            ...ch,
-                            messages: ch.messages.map((m) =>
-                              m.id === messageId ? { ...m, isPinned: false } : m
-                            ),
-                          }
-                        : ch
-                    ),
-                  }
-                : s
-            )
-          );
+          const targetMessage = selectedServer?.channels
+            .find((ch) => ch.id === channelId)
+            ?.messages.find((m) => m.id === messageId);
+          if (targetMessage) {
+            handlePinMessage(targetMessage, false);
+          }
         }}
-        onDeletePin={(messageId) => {
-          // Handle delete - remove message from channel
-          setServers((prev) =>
-            prev.map((s) =>
-              s.id === serverId
-                ? {
-                    ...s,
-                    channels: s.channels.map((ch) =>
-                      ch.id === channelId
-                        ? {
-                            ...ch,
-                            messages: ch.messages.filter((m) => m.id !== messageId),
-                          }
-                        : ch
-                    ),
-                  }
-                : s
-            )
-          );
-        }}
+        onDeletePin={(messageId) => handleDeleteMessage(messageId)}
         onJumpToMessage={(messageId) => {
           // Jump to message in chat
           setTimeout(() => {
