@@ -1,6 +1,8 @@
 # 0xchat 🚀
 
-A feature-rich Discord-like chat application built with Next.js 15, React 19, and TypeScript, featuring real-time WebSocket communication, Web3 authentication, file uploads, rich media support, and advanced messaging features.
+This shit is mostly vibe-coded.. so.. yeah.. expect bugs.. (i code only when i get ratelimited by github copilot lmao)
+
+A feature-rich Discord-like chat application built with Next.js, React, and TypeScript, featuring real-time WebSocket communication, Web3 authentication, file uploads, rich media support, and advanced messaging features.
 
 ## Features
 
