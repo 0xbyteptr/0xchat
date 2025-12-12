@@ -95,16 +95,8 @@ export default function ChatLayout({
         />
       </div>
 
-      {/* Members List and Profile Panel */}
-      <div className="w-80 bg-slate-800/50 backdrop-blur-md flex flex-col border-l border-slate-700/50 h-screen overflow-y-auto">
-        {/* Current User Profile Card */}
-        <UserProfileCard
-          currentUser={currentUser}
-          onProfileClick={onProfileClick}
-          onSettingsClick={onSettingsClick}
-        />
-
-        {/* Members List */}
+      {/* Members List */}
+      <div className="w-80 pt-15 bg-slate-800/50 backdrop-blur-md flex flex-col border-l border-slate-700/50 h-screen overflow-y-auto">
         <div className="flex-1 overflow-y-auto p-4">
           <p className="text-xs font-bold text-gray-500 px-2 mb-3 uppercase tracking-wide">
             Members ({serverMembers.length})
