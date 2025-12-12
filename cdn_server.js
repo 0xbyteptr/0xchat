@@ -1,9 +1,9 @@
-import express, { Request, Response, NextFunction } from "express";
-import cors from "cors";
-import path from "path";
-import fs from "fs";
-import { createReadStream } from "fs";
-import compression from "compression";
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+const { createReadStream } = require("fs");
+const compression = require("compression");
 
 const app = express();
 const PORT = process.env.CDN_PORT || 3003;
@@ -20,7 +20,7 @@ app.use(
 );
 
 // Security headers
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
@@ -29,50 +29,37 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Routes
-
-/**
- * GET /health - Health check
- */
-app.get("/health", (req: Request, res: Response) => {
+// Health check
+app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-/**
- * GET /uploads/:filename - Serve uploaded files
- * Example: /uploads/abc123def456.png
- */
-app.get("/uploads/:filename", (req: Request, res: Response) => {
+// Serve uploaded files
+app.get("/uploads/:filename", (req, res) => {
   const { filename } = req.params;
 
-  // Security: Prevent directory traversal
   if (filename.includes("..") || filename.includes("/")) {
     return res.status(400).json({ error: "Invalid filename" });
   }
 
   const filepath = path.join(UPLOADS_DIR, filename);
-
-  // Verify file exists and is within UPLOADS_DIR
   const resolvedPath = path.resolve(filepath);
   if (!resolvedPath.startsWith(path.resolve(UPLOADS_DIR))) {
     return res.status(403).json({ error: "Access denied" });
   }
 
-  // Check if file exists
   if (!fs.existsSync(filepath)) {
     console.log(`❌ File not found: ${filepath}`);
     return res.status(404).json({ error: "File not found" });
   }
 
-  // Get file stats
   const stats = fs.statSync(filepath);
   if (!stats.isFile()) {
     return res.status(404).json({ error: "Not a file" });
   }
 
-  // Determine content type based on extension
   const ext = path.extname(filename).toLowerCase();
-  const contentTypes: Record<string, string> = {
+  const contentTypes = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png": "image/png",
@@ -91,11 +78,8 @@ app.get("/uploads/:filename", (req: Request, res: Response) => {
   res.setHeader("Content-Type", contentType);
   res.setHeader("Content-Length", stats.size);
 
-  // Hashed filenames are immutable - cache for 1 year
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  // Set ETag for cache validation
   res.setHeader("ETag", `"${stats.mtimeMs}"`);
-  // Set Last-Modified
   res.setHeader("Last-Modified", stats.mtime.toUTCString());
 
   const stream = createReadStream(filepath);
@@ -111,34 +95,20 @@ app.get("/uploads/:filename", (req: Request, res: Response) => {
   console.log(`📥 Served file: ${filename}`);
 });
 
-/**
- * GET /files/:type/:id - Serve files by type and ID
- * Examples:
- * /files/avatars/user123.png
- * /files/profiles/bio-user456.txt
- */
-app.get("/files/:type/:filename", (req: Request, res: Response) => {
+// Serve files by type
+app.get("/files/:type/:filename", (req, res) => {
   const { type, filename } = req.params;
 
-  // Security: Prevent directory traversal
-  if (
-    filename.includes("..") ||
-    filename.includes("/") ||
-    type.includes("..") ||
-    type.includes("/")
-  ) {
+  if (filename.includes("..") || filename.includes("/") || type.includes("..") || type.includes("/")) {
     return res.status(400).json({ error: "Invalid path" });
   }
 
   const filepath = path.join(DATA_DIR, type, filename);
   const resolvedPath = path.resolve(filepath);
-
-  // Verify path is within DATA_DIR
   if (!resolvedPath.startsWith(path.resolve(DATA_DIR))) {
     return res.status(403).json({ error: "Access denied" });
   }
 
-  // Check if file exists
   if (!fs.existsSync(filepath)) {
     return res.status(404).json({ error: "File not found" });
   }
@@ -148,9 +118,8 @@ app.get("/files/:type/:filename", (req: Request, res: Response) => {
     return res.status(404).json({ error: "Not a file" });
   }
 
-  // Determine content type
   const ext = path.extname(filename).toLowerCase();
-  const contentTypes: Record<string, string> = {
+  const contentTypes = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png": "image/png",
@@ -177,14 +146,9 @@ app.get("/files/:type/:filename", (req: Request, res: Response) => {
   console.log(`📥 Served file: ${type}/${filename}`);
 });
 
-/**
- * GET /list/:directory - List files in a directory (for admin/debug)
- * Example: /list/uploads
- */
-app.get("/list/:directory", (req: Request, res: Response) => {
+// List files
+app.get("/list/:directory", (req, res) => {
   const { directory } = req.params;
-
-  // Security: Only allow specific directories
   const allowedDirs = ["uploads", "avatars", "profiles"];
   if (!allowedDirs.includes(directory)) {
     return res.status(403).json({ error: "Access denied" });
@@ -221,14 +185,9 @@ app.get("/list/:directory", (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /cleanup - Delete old files (only from specific directory)
- * Body: { olderThanDays: number, directory: string }
- */
-app.post("/cleanup", express.json(), (req: Request, res: Response) => {
+// POST /cleanup
+app.post("/cleanup", express.json(), (req, res) => {
   const { olderThanDays = 30, directory = "uploads" } = req.body;
-
-  // Security: Only allow cleanup in uploads
   if (directory !== "uploads") {
     return res.status(403).json({ error: "Can only cleanup uploads directory" });
   }
@@ -265,7 +224,7 @@ app.post("/cleanup", express.json(), (req: Request, res: Response) => {
 });
 
 // Error handling
-app.use((req: Request, res: Response) => {
+app.use((req, res) => {
   res.status(404).json({
     error: "Not found",
     path: req.path,
@@ -273,7 +232,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err, req, res, next) => {
   console.error("❌ Server error:", err);
   res.status(500).json({
     error: "Internal server error",
@@ -283,21 +242,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════╗
-║   📡 CDN Server Started            ║
-╠════════════════════════════════════╣
-║ URL: http://localhost:${PORT}        ║
-║ Data: ${DATA_DIR}  ║
-║                                    ║
-║ Endpoints:                         ║
-║ GET  /health                       ║
-║ GET  /uploads/:filename            ║
-║ GET  /files/:type/:filename        ║
-║ GET  /list/:directory              ║
-║ POST /cleanup                      ║
-╚════════════════════════════════════╝
-  `);
+  console.log(`\n╔════════════════════════════════════╗\n║   📡 CDN Server Started            ║\n╠════════════════════════════════════╣\n║ URL: http://localhost:${PORT}        ║\n║ Data: ${DATA_DIR}  ║\n║                                    ║\n║ Endpoints:                         ║\n║ GET  /health                       ║\n║ GET  /uploads/:filename            ║\n║ GET  /files/:type/:filename        ║\n║ GET  /list/:directory              ║\n║ POST /cleanup                      ║\n╚════════════════════════════════════╝\n  `);
 });
 
 // Graceful shutdown

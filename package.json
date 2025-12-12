@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:cdn": "ts-node cdn_server.ts",
+    "dev:cdn": "node cdn_server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:cdn\"",
     "build": "next build",
     "start": "next start",
-    "start:cdn": "ts-node cdn_server.ts",
+    "start:cdn": "node cdn_server.js",
     "start:all": "concurrently \"npm run start\" \"npm run start:cdn\"",
     "lint": "eslint",
     "setup": "node scripts/setup.js"
