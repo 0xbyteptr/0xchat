@@ -5,6 +5,7 @@ import LoginForm from "@/components/LoginForm";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { User } from "@/lib/types";
+import { getApiUrl } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
