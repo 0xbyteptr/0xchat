@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Upload, X, FileIcon, Image, File } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface FileUploadProps {
   onFileSelect?: (file: File, preview?: string) => void;
@@ -113,7 +114,7 @@ export default function FileUpload({
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await fetch("/api/upload", {
+        const response = await fetch(getApiUrl("/api/upload"), {
           method: "POST",
           body: formData,
         });

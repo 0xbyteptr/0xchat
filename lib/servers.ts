@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Server, Invite } from "@/lib/types";
 import { API_ENDPOINTS } from "@/lib/constants";
+import { getApiUrl } from "@/lib/api";
 
 interface ServerResponse {
   success?: boolean;
@@ -21,7 +22,7 @@ export function useServers(token: string | null) {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/servers", {
+        const response = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -54,7 +55,7 @@ export function useServers(token: string | null) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/servers", {
+const response = await fetch(getApiUrl("/api/servers"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,7 +86,7 @@ export function useServers(token: string | null) {
       setError("");
 
       try {
-        const response = await fetch("/api/servers", {
+        const response = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -117,7 +118,7 @@ export function useServers(token: string | null) {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/servers", {
+        const response = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -151,7 +152,7 @@ export function useServers(token: string | null) {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/servers", {
+        const response = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

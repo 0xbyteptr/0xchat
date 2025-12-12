@@ -14,6 +14,7 @@ interface SidebarProps {
   onSettingsClick: () => void;
   onLogout: () => void;
   onShowInvite?: () => void;
+  className?: string;
 }
 
 export default function Sidebar({
@@ -29,6 +30,7 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <div className="w-72 bg-slate-800/50 pt-15 backdrop-blur-md flex flex-col border-r border-slate-700/50 h-screen">
+
       {/* Server Name */}
       <div className="border-b border-slate-700/50 p-6">
         <div className="mb-4">

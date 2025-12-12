@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { User } from "@/lib/types";
 import { Toast, UserNotification } from "@/lib/notification-types";
+import { getApiUrl } from "@/lib/api";
 
 export default function DMsPage() {
   const router = useRouter();
@@ -89,7 +90,7 @@ export default function DMsPage() {
       // Load full user profile
       const loadProfile = async () => {
         try {
-          const response = await fetch(`/api/profile?id=${userId}`, {
+          const response = await fetch(getApiUrl(`/api/profile?id=${userId}`), {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (response.ok) {
@@ -113,7 +114,7 @@ export default function DMsPage() {
     if (!token) return;
     const loadServers = async () => {
       try {
-        const response = await fetch("/api/servers", {
+        const response = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",

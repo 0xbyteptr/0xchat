@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { User } from "@/lib/types";
+import { getApiUrl } from "@/lib/api";
 
 interface ProfileResponse {
   success?: boolean;
@@ -17,7 +18,7 @@ export function useProfile(token: string | null) {
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/profile", {
+      const res = await fetch(getApiUrl("/api/profile"), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -44,7 +45,7 @@ export function useProfile(token: string | null) {
       setIsLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}`, {
+        const res = await fetch(getApiUrl(`/api/profile?username=${encodeURIComponent(username)}`), {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -72,7 +73,7 @@ export function useProfile(token: string | null) {
       setIsLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/profile", {
+        const res = await fetch(getApiUrl("/api/profile"), {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

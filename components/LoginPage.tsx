@@ -60,7 +60,7 @@ export default function LoginPage() {
       }
 
       // Send to Web3 auth endpoint
-      const res = await fetch("/api/auth/web3", {
+      const res = await fetch(getApiUrl("/api/auth/web3"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, message, signature }),

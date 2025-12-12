@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks";
+import { getApiUrl } from "@/lib/api";
 
 export default function InviteJoinPage() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function InviteJoinPage() {
       setStatus("joining");
       setError(null);
       try {
-        const res = await fetch("/api/servers", {
+        const res = await fetch(getApiUrl("/api/servers"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

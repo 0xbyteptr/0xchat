@@ -68,6 +68,7 @@ export default function ServerChat() {
   // Server state
   const [servers, setServers] = useState<Server[]>([]);
   const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [serverError, setServerError] = useState("");
@@ -711,6 +712,8 @@ export default function ServerChat() {
             onAddReaction={handleAddReaction}
             onRemoveReaction={handleRemoveReaction}
             serverMembers={serverMembers}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
           />
         </div>
       ) : (
@@ -875,6 +878,7 @@ export default function ServerChat() {
         onMarkAllNotificationsAsRead={markAllNotificationsAsRead}
         onDismissNotification={dismissNotification}
         onAcceptNotification={acceptNotification}
+        onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
       />
 
       {/* Toast Container */}

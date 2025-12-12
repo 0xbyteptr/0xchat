@@ -29,6 +29,8 @@ interface ChatLayoutProps {
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (messageId: string, emoji: string) => void;
   serverMembers?: User[];
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export default function ChatLayout({
@@ -52,22 +54,52 @@ export default function ChatLayout({
   onAddReaction,
   onRemoveReaction,
   serverMembers = [],
+  isSidebarOpen = false,
+  onToggleSidebar,
 }: ChatLayoutProps) {
   const selectedChannel = channels.find((ch) => ch.id === selectedChannelId);
 
   return (
     <div className="flex flex-1 h-screen w-full bg-slate-900">
-      <Sidebar
-        currentUser={currentUser}
-        server={server}
-        channels={channels}
-        selectedChannelId={selectedChannelId}
-        onChannelSelect={onChannelSelect}
-        onProfileClick={onProfileClick}
-        onSettingsClick={onSettingsClick}
-        onLogout={onLogout}
-        onShowInvite={onShowInvite}
-      />
+      {/* Desktop sidebar: hidden on mobile */}
+      <div className="hidden md:flex">
+        <Sidebar
+          currentUser={currentUser}
+          server={server}
+          channels={channels}
+          selectedChannelId={selectedChannelId}
+          onChannelSelect={onChannelSelect}
+          onProfileClick={onProfileClick}
+          onSettingsClick={onSettingsClick}
+          onLogout={onLogout}
+          onShowInvite={onShowInvite}
+          className=""
+        />
+      </div>
+
+      {/* Mobile drawer */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={onToggleSidebar} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-slate-800/50 p-4">
+            <Sidebar
+              currentUser={currentUser}
+              server={server}
+              channels={channels}
+              selectedChannelId={selectedChannelId}
+              onChannelSelect={(id) => {
+                onChannelSelect(id);
+                onToggleSidebar?.();
+              }}
+              onProfileClick={onProfileClick}
+              onSettingsClick={onSettingsClick}
+              onLogout={onLogout}
+              onShowInvite={onShowInvite}
+              className=""
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col bg-slate-900">
         <ChatHeader server={server} selectedChannel={selectedChannel} onShowOverview={onShowOverview} onShowPinnedMessages={onShowPinnedMessages} />
@@ -96,7 +128,7 @@ export default function ChatLayout({
       </div>
 
       {/* Members List */}
-      <div className="w-80 pt-15 bg-slate-800/50 backdrop-blur-md flex flex-col border-l border-slate-700/50 h-screen overflow-y-auto">
+      <div className="hidden md:flex w-80 pt-15 bg-slate-800/50 backdrop-blur-md flex-col border-l border-slate-700/50 h-screen overflow-y-auto">
         <div className="flex-1 overflow-y-auto p-4">
           <p className="text-xs font-bold text-gray-500 px-2 mb-3 uppercase tracking-wide">
             Members ({serverMembers.length})

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 interface Conversation {
   id: string;
@@ -35,8 +36,13 @@ export default function DMList({
   }, [token]);
 
   const loadConversations = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch("/api/dms/list", {
+      const response = await fetch(getApiUrl("/api/dms/list"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
