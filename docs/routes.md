@@ -123,7 +123,3 @@ Request body:
 - API endpoints should honor `Cache-Control` tailored to the data (see `lib/cache-headers.ts`).
 - Keep API and page routing organized: group routes logically under `app/api/` and page routes under `app/`.
 - When adding new endpoints, update tests and the `/docs/routes.md` file to keep the reference accurate.
-
----
-
-If you want, I can also generate a simple `routes.json` manifest file for programmatic discovery of endpoints and attach the server file paths automatically. Would you like me to add that? 
