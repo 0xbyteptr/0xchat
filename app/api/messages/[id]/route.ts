@@ -4,11 +4,11 @@ import * as path from "path";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: messageId } = await context.params;
     const { content } = await req.json();
-    const messageId = params.id;
 
     if (!content || !messageId) {
       return NextResponse.json(
@@ -20,7 +20,6 @@ export async function PATCH(
     const messagesPath = path.join(process.cwd(), "data", "messages.json");
     const data = JSON.parse(await fs.readFile(messagesPath, "utf-8"));
 
-    // Find and update message
     const message = data.find((m: any) => m.id === messageId);
     if (!message) {
       return NextResponse.json(
@@ -48,15 +47,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const messageId = params.id;
+    const { id: messageId } = await context.params;
 
     const messagesPath = path.join(process.cwd(), "data", "messages.json");
     const data = JSON.parse(await fs.readFile(messagesPath, "utf-8"));
 
-    // Filter out deleted message
     const filteredData = data.filter((m: any) => m.id !== messageId);
 
     if (filteredData.length === data.length) {
