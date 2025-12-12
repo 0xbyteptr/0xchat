@@ -20,8 +20,13 @@ export default function ProfileModal({
 }: ProfileModalProps) {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<User["status"]>(undefined);
   const [avatar, setAvatar] = useState("");
+
+  // Helper to validate and narrow status value
+  const isValidStatus = (val: string | undefined): val is User["status"] => {
+    return typeof val === "string" && ["online", "away", "offline", "dnd"].includes(val);
+  };
   const [theme, setTheme] = useState<User["theme"]>("midnight");
   const [font, setFont] = useState<User["font"]>("sans");
   const [accentColor, setAccentColor] = useState("#a855f7");
@@ -34,7 +39,7 @@ export default function ProfileModal({
     if (profile) {
       setDisplayName(profile.displayName || profile.username || "");
       setBio(profile.bio || "");
-      setStatus(profile.status || "");
+      setStatus(profile.status || undefined);
       setAvatar(profile.avatar || "");
       setTheme(profile.theme || "midnight");
       setFont(profile.font || "sans");
@@ -183,8 +188,12 @@ export default function ProfileModal({
           <div>
             <label className="block text-sm text-slate-300 mb-1">Status</label>
             <input
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              value={status || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (isValidStatus(val)) setStatus(val as User["status"]);
+                else setStatus(undefined);
+              }}
               className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-500"
               maxLength={64}
               disabled={isLoading}
