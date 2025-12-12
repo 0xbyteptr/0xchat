@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import LoginForm from "@/components/LoginForm";
 import { useAuth } from "@/lib/hooks";
 import { User } from "@/lib/types";
+import { getApiUrl } from "@/lib/api";
 
 // Decode JWT payload client-side to restore session user
 const decodeUserFromToken = (token: string): User | null => {
