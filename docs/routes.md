@@ -32,6 +32,8 @@ A short reference of the major API endpoints, HTTP methods and locations:
 ### Messages & DMs
 - `GET /api/messages` — list messages: [app/api/messages/route.ts](app/api/messages/route.ts#L1)
 - `POST /api/messages` — create a message: [app/api/messages/route.ts](app/api/messages/route.ts#L1)
+- `PATCH /api/messages/:id` — edit a message (author-only). Request body: `{ "content": "updated text" }`(requires Authorization Bearer token): [app/api/messages/[id]/route.ts](app/api/messages/[id]/route.ts#L1)
+- `DELETE /api/messages/:id` — delete a message (author-only). Requires Authorization Bearer token: [app/api/messages/[id]/route.ts](app/api/messages/[id]/route.ts#L1)
 - `GET /api/dms` — list DMs and conversations: [app/api/dms/route.ts](app/api/dms/route.ts#L1)
 - `POST /api/dms/:userId` — send a DM to user: [app/api/dms/route.ts](app/api/dms/route.ts#L1)
 
@@ -48,6 +50,13 @@ A short reference of the major API endpoints, HTTP methods and locations:
 
 ### Websockets
 - `GET /api/ws` — web socket handshake / fallback route if proxied; actual websocket server runs in `ws-server.ts` but there is a route that can be used for tests or a websocket handshake: [app/api/ws/route.ts](app/api/ws/route.ts#L1) and [lib/ws-server.ts](lib/ws-server.ts#L1)
+
+WebSocket Events (broadcast from server):
+- `message` — a new message was posted. Payload: `{ type: "message", channel: "<serverId>-<channelId>", message: Message }`
+- `message_edit` — an existing message was edited. Payload: `{ type: "message_edit", channel: "<serverId>-<channelId>", message: Message }`
+- `message_delete` — a message was deleted. Payload: `{ type: "message_delete", channel: "<serverId>-<channelId>", messageId: string }`
+
+Clients should listen for these event types and update the UI accordingly (e.g., editing inline message content or removing a message). Edits include `editedAt` and `isEdited` fields on the message when applicable.
 
 ### Cache Management
 - `GET /api/cache?action=stats` — return cache stats: [app/api/cache/route.ts](app/api/cache/route.ts#L1)

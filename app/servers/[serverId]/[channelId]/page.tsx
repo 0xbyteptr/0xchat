@@ -665,6 +665,111 @@ export default function ServerChat() {
     );
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!token) return;
+    try {
+      const endpoint = `/api/messages/${messageId}`;
+      const resolved = getApiUrl(endpoint);
+
+      let res: Response | null = null;
+      try {
+        res = await fetch(resolved, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+      } catch (err) {
+        console.warn("Delete message failed, trying relative endpoint", err);
+      }
+
+      if ((!res || !res.ok) && resolved !== endpoint) {
+        res = await fetch(endpoint, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+      }
+
+      if (res && res.ok) {
+        setServers((prev) =>
+          prev.map((s) =>
+            s.id === serverId
+              ? {
+                  ...s,
+                  channels: s.channels.map((ch) =>
+                    ch.id === channelId
+                      ? { ...ch, messages: ch.messages.filter((m) => m.id !== messageId) }
+                      : ch
+                  ),
+                }
+              : s
+          )
+        );
+      } else {
+        console.error("Failed to delete message", res);
+      }
+    } catch (error) {
+      console.error("Delete message error:", error);
+    }
+  };
+
+  const handleEditMessage = async (messageId: string, content: string) => {
+    if (!token) return;
+    try {
+      const endpoint = `/api/messages/${messageId}`;
+      const resolved = getApiUrl(endpoint);
+
+      let res: Response | null = null;
+      try {
+        res = await fetch(resolved, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ content }),
+        });
+      } catch (err) {
+        console.warn("Edit message failed, trying relative endpoint", err);
+      }
+
+      if ((!res || !res.ok) && resolved !== endpoint) {
+        res = await fetch(endpoint, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ content }),
+        });
+      }
+
+      if (res && res.ok) {
+        const data = await res.json();
+        // Update local state with edited content
+        setServers((prev) =>
+          prev.map((s) =>
+            s.id === serverId
+              ? {
+                  ...s,
+                  channels: s.channels.map((ch) =>
+                    ch.id === channelId
+                      ? {
+                          ...ch,
+                          messages: ch.messages.map((m) =>
+                            m.id === messageId ? { ...m, content: data.content ?? content, isEdited: true, editedAt: data.editedAt ?? new Date().toISOString() } : m
+                          ),
+                        }
+                      : ch
+                  ),
+                }
+              : s
+          )
+        );
+      } else {
+        console.error("Failed to edit message", res);
+      }
+    } catch (error) {
+      console.error("Edit message error:", error);
+    }
+  };
+
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
@@ -718,6 +823,8 @@ export default function ServerChat() {
             onShowPinnedMessages={() => setIsPinnedMessagesOpen(true)}
             onAddReaction={handleAddReaction}
             onRemoveReaction={handleRemoveReaction}
+            onDeleteMessage={handleDeleteMessage}
+            onEditMessage={handleEditMessage}
             serverMembers={serverMembers}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={() => setIsSidebarOpen((v) => !v)}

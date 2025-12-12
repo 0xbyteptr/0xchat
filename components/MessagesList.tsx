@@ -8,6 +8,7 @@ import MediaPreview from "./MediaPreview";
 import LinkPreview from "./LinkPreview";
 import InvitePreview from "./InvitePreview";
 import MarkdownContent from "./MarkdownContent";
+import MessageActions from "./MessageActions";
 import { Pin } from "lucide-react";
 
 interface MessagesListProps {
@@ -18,6 +19,8 @@ interface MessagesListProps {
   onPinMessage?: (messageId: string) => void;
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (messageId: string, emoji: string) => void;
+  onDelete?: (messageId: string) => void;
+  onEdit?: (messageId: string, content: string) => void;
   currentUserId?: string;
 }
 
@@ -29,9 +32,14 @@ export default function MessagesList({
   onPinMessage,
   onAddReaction,
   onRemoveReaction,
+  onDelete,
+  onEdit,
   currentUserId,
 }: MessagesListProps) {
   const [selectedMessageId, setSelectedMessageId] = useState<string>("");
+  const [editingMessageId, setEditingMessageId] = useState<string>("");
+  const [editingContent, setEditingContent] = useState<string>("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Extract links from all messages dynamically (in case they weren't extracted on send)
   const messagesWithLinks = useMemo(() => {
@@ -133,7 +141,41 @@ export default function MessagesList({
                 </button>
               )}
             </div>
-            <MarkdownContent content={message.content} onMentionClick={onMentionClick} />
+            {editingMessageId === message.id ? (
+              <div className="mt-2">
+                <textarea
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  className="w-full rounded-xl bg-slate-700/50 border border-slate-600/50 px-5 py-3 text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                  rows={3}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={async () => {
+                      if (!editingContent.trim()) return;
+                      setIsSavingEdit(true);
+                      await onEdit?.(message.id, editingContent);
+                      setIsSavingEdit(false);
+                      setEditingMessageId("");
+                    }}
+                    className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    {isSavingEdit ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingMessageId("");
+                      setEditingContent("");
+                    }}
+                    className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <MarkdownContent content={message.content} onMentionClick={onMentionClick} />
+            )}
             
             {/* Media Attachments */}
             {message.attachments && message.attachments.length > 0 && (
@@ -184,6 +226,24 @@ export default function MessagesList({
                   reactions={{}}
                   onAddReaction={(emoji) => onAddReaction?.(message.id, emoji)}
                   onRemoveReaction={(emoji) => onRemoveReaction?.(message.id, emoji)}
+                />
+              </div>
+            )}
+
+            {selectedMessageId === message.id && (
+              <div className="mt-2 flex gap-2">
+                <MessageActions
+                  messageId={message.id}
+                  isOwn={message.author.id === currentUserId}
+                  onDelete={async (id) => await onDelete?.(id)}
+                  onEdit={() => {
+                    setEditingMessageId(message.id);
+                    setEditingContent(message.content);
+                  }}
+                  onReply={() => {
+                    console.log("Reply to message:", message.id);
+                  }}
+                  visible={true}
                 />
               </div>
             )}

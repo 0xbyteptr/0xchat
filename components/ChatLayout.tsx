@@ -28,6 +28,8 @@ interface ChatLayoutProps {
   onShowPinnedMessages?: () => void;
   onAddReaction?: (messageId: string, emoji: string) => void;
   onRemoveReaction?: (messageId: string, emoji: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
+  onEditMessage?: (messageId: string, content: string) => void;
   serverMembers?: User[];
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
@@ -53,6 +55,8 @@ export default function ChatLayout({
   onShowPinnedMessages,
   onAddReaction,
   onRemoveReaction,
+  onDeleteMessage,
+  onEditMessage,
   serverMembers = [],
   isSidebarOpen = false,
   onToggleSidebar,
@@ -115,6 +119,8 @@ export default function ChatLayout({
           }}
           onAddReaction={onAddReaction}
           onRemoveReaction={onRemoveReaction}
+          onDelete={onDeleteMessage}
+          onEdit={onEditMessage}
         />
 
         <MessageInput
