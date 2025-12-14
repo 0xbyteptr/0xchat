@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     return corsJson({ success: true, user: safeUser }, undefined, req.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Profile GET error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return corsJson({ error: "Internal server error" }, { status: 500 }, req.headers.get("origin") || undefined);
   }
 }
 
