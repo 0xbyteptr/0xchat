@@ -36,6 +36,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function OPTIONS(req: NextRequest) {
+  return corsJson({}, { status: 204 }, req.headers.get("origin") || undefined);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");

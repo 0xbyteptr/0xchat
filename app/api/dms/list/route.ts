@@ -100,3 +100,7 @@ export async function GET(request: NextRequest) {
     return corsJson({ error: "Failed to fetch DMs" }, { status: 500 }, request.headers.get("origin") || undefined);
   }
 }
+
+export async function OPTIONS(request: NextRequest) {
+  return corsJson({}, { status: 204 }, request.headers.get("origin") || undefined);
+}

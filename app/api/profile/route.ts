@@ -3,6 +3,11 @@ import { corsJson } from "@/lib/cors";
 import { getDatabase } from "@/lib/db";
 import { extractToken, verifyToken } from "@/lib/jwt";
 
+export async function OPTIONS(req: Request) {
+  // Reply to preflight requests with CORS headers
+  return corsJson({}, { status: 204 }, (req as any).headers?.get("origin") || undefined);
+}
+
 export async function GET(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
