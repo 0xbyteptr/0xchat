@@ -12,7 +12,8 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get("origin") || "*";
     // Handle preflight
     if (request.method === "OPTIONS") {
-      const res = NextResponse.json({}, { status: 204 });
+      // Preflight should be a 204 No Content with appropriate CORS headers
+      const res = new NextResponse(null, { status: 204 });
       res.headers.set("Access-Control-Allow-Origin", origin);
       res.headers.set(
         "Access-Control-Allow-Methods",
