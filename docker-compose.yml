@@ -12,10 +12,14 @@ services:
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
       - NEXT_PUBLIC_CDN_URL=http://cdn:3003
       - CDN_ALLOWED_ORIGINS=${CDN_ALLOWED_ORIGINS:-http://localhost:3001}
+      - DATABASE_TYPE=mongodb
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB=0xchat
     ports:
       - "3001:3001"
     depends_on:
       - cdn
+      - mongo
     volumes:
       - ./data:/app/data
 
@@ -33,4 +37,22 @@ services:
     volumes:
       - ./data:/app/data
 
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=0xchat
+    ports:
+      - "27017:27017" # optional - remove if you don't want to expose Mongo externally
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 # Optional: add a reverse proxy (nginx) or handle TLS outside compose
+
+volumes:
+  mongo_data:

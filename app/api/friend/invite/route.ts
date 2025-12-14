@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
     }
 
     const user = auth.user!;
-    const db = getDatabase();
-    const invites = db.getFriendInvites(user.id);
+    const db = await getDatabase();
+    const invites = await db.getFriendInvites(user.id);
     return NextResponse.json({ invites });
   } catch (error) {
     console.error("Friend invites GET error:", error);
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot invite yourself" }, { status: 400 });
     }
 
-    const db = getDatabase();
-    const targetUser = db.getUser(to);
+    const db = await getDatabase();
+    const targetUser = await db.getUser(to);
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      db.addFriendInvite(invite);
+      await db.addFriendInvite(invite);
     } catch (err) {
       console.error("Friend invite POST db error", err);
       return NextResponse.json({ error: "Failed to save invite" }, { status: 500 });

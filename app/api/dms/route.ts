@@ -30,15 +30,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
     const userId = (auth.user as any).id;
     const { searchParams } = new URL(request.url);
     const partnerId = searchParams.get("with");
 
-    // If specific partner requested, get that conversation
     if (partnerId) {
-      const messages = db.getDMs(userId, partnerId);
-      const partner = db.getUser(partnerId);
+      const messages = await db.getDMs(userId, partnerId);
+      const partner = await db.getUser(partnerId);
       return NextResponse.json({
         messages,
         partner: partner || { id: partnerId, username: partnerId },
@@ -46,27 +45,29 @@ export async function GET(request: NextRequest) {
     }
 
     // List conversations for this user
-    const conversationsRaw = db.getDMConversations(userId);
+    const conversationsRaw = await db.getDMConversations(userId);
 
-    const conversations = conversationsRaw
-      .map((conv) => {
-        const otherUser = db.getUser(conv.otherUserId);
-        const messagesSorted = [...conv.messages].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
+    const conversations = (
+      await Promise.all(
+        conversationsRaw.map(async (conv: { otherUserId: string; messages: any; }) => {
+          const otherUser = await db.getUser(conv.otherUserId);
+          const messagesSorted = [...conv.messages].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
 
-        return {
-          otherUserId: conv.otherUserId,
-          otherUser: otherUser || { id: conv.otherUserId, username: conv.otherUserId },
-          messages: messagesSorted,
-          lastMessage: messagesSorted[messagesSorted.length - 1],
-        };
-      })
-      .sort((a, b) => {
-        const aTime = new Date(a.lastMessage?.timestamp || 0).getTime();
-        const bTime = new Date(b.lastMessage?.timestamp || 0).getTime();
-        return bTime - aTime;
-      });
+          return {
+            otherUserId: conv.otherUserId,
+            otherUser: otherUser || { id: conv.otherUserId, username: conv.otherUserId },
+            messages: messagesSorted,
+            lastMessage: messagesSorted[messagesSorted.length - 1],
+          };
+        })
+      )
+    ).sort((a: { lastMessage: { timestamp: any; }; }, b: { lastMessage: { timestamp: any; }; }) => {
+      const aTime = new Date(a.lastMessage?.timestamp || 0).getTime();
+      const bTime = new Date(b.lastMessage?.timestamp || 0).getTime();
+      return bTime - aTime;
+    });
 
     return NextResponse.json({ conversations });
   } catch (error) {
@@ -98,11 +99,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
     const fromUserId = (auth.user as any).id;
 
     // Verify recipient exists
-    const recipient = db.getUser(to);
+    const recipient = await db.getUser(to);
     if (!recipient) {
       return NextResponse.json(
         { error: "Recipient not found" },
@@ -124,10 +125,10 @@ export async function POST(request: NextRequest) {
       ...newDM,
       timestamp: newDM.timestamp as string,
     };
-    db.addDM(fromUserId, to, dbDM);
+    await db.addDM(fromUserId, to, dbDM);
 
     // Get sender details for response
-    const sender = db.getUser(fromUserId);
+    const sender = await db.getUser(fromUserId);
 
     // Broadcast to WebSocket
     try {

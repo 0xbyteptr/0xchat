@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
       return corsJson({ error: "Signature does not match wallet address" }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
 
     // Check if wallet already has an account, or create one
-    let user = db.getUser(address);
+    let user = await db.getUser(address);
 
     if (!user) {
       // Create new user with wallet address as username
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         accentColor: "#3b82f6", // blue for Web3
       };
 
-      user = db.createUser(newUser);
+      user = await db.createUser(newUser);
     }
 
     // Generate JWT token

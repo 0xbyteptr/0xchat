@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action, serverId } = body;
 
-    const db = getDatabase();
-    const server = db.getServer(serverId);
+    const db = await getDatabase();
+    const server = await db.getServer(serverId);
     if (!server) {
       return NextResponse.json({ error: "Server not found" }, { status: 404 });
     }
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 
       if (!server.roles) server.roles = [];
       server.roles.push(newRole);
-      db.updateServer(serverId, { roles: server.roles });
+      await db.updateServer(serverId, { roles: server.roles });
 
       return NextResponse.json({ success: true, role: newRole }, { status: 201 });
     }
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         memberRole.roleIds.push(roleId);
       }
 
-      db.updateServer(serverId, { memberRoles: server.memberRoles });
+      await db.updateServer(serverId, { memberRoles: server.memberRoles });
 
       return NextResponse.json({
         success: true,
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       }
 
       memberRole.roleIds = memberRole.roleIds.filter((id) => id !== roleId);
-      db.updateServer(serverId, { memberRoles: server.memberRoles });
+      await db.updateServer(serverId, { memberRoles: server.memberRoles });
 
       return NextResponse.json({
         success: true,

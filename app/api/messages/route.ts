@@ -34,37 +34,39 @@ export async function GET(request: NextRequest) {
       return corsJson({ error: "Channel is required" }, { status: 400 }, request.headers.get("origin") || undefined);
     }
 
-    const db = getDatabase();
-    const channelMessages = db.getChannelMessages(channel);
+    const db = await getDatabase();
+    const channelMessages = await db.getChannelMessages(channel);
 
     // Hydrate author details for client display
-    const hydrated = channelMessages.map((msg) => {
-      const authorId = (msg as any)?.author?.id || (msg as any)?.author;
-      const user = authorId ? db.getUser(authorId) : null;
-      
-      if (!user) {
+    const hydrated = await Promise.all(
+      channelMessages.map(async (msg) => {
+        const authorId = (msg as any)?.author?.id || (msg as any)?.author;
+        const user = authorId ? await db.getUser(authorId) : null;
+
+        if (!user) {
+          return {
+            ...msg,
+            author: {
+              id: authorId || "unknown",
+              username: authorId || "unknown",
+              avatar: "😺",
+            },
+          };
+        }
+
+        const { password, ...safeUser } = user as any;
         return {
           ...msg,
           author: {
-            id: authorId || "unknown",
-            username: authorId || "unknown",
-            avatar: "😺",
+            id: safeUser.id,
+            username: safeUser.username,
+            avatar: safeUser.avatar,
+            displayName: safeUser.displayName,
+            status: safeUser.status,
           },
         };
-      }
-
-      const { password, ...safeUser } = user as any;
-      return {
-        ...msg,
-        author: {
-          id: safeUser.id,
-          username: safeUser.username,
-          avatar: safeUser.avatar,
-          displayName: safeUser.displayName,
-          status: safeUser.status,
-        },
-      };
-    });
+      })
+    );
 
     return corsJson({ messages: hydrated }, undefined, request.headers.get("origin") || undefined);
   } catch (error) {
@@ -90,15 +92,15 @@ export async function POST(request: NextRequest) {
       return corsJson({ error: "Channel and message are required" }, { status: 400 }, request.headers.get("origin") || undefined);
     }
 
-    const db = getDatabase();
-    const user = db.getUser(auth.user!.id);
+    const db = await getDatabase();
+    const user = await db.getUser(auth.user!.id);
 
     const storedMessage = {
       ...message,
       author: { id: user?.id || auth.user!.id },
     };
 
-    db.addMessage(channel, storedMessage as any);
+    await db.addMessage(channel, storedMessage as any);
 
     // Broadcast over websocket to connected clients
     try {

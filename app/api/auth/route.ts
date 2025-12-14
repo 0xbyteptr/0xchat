@@ -20,13 +20,13 @@ export async function POST(request: Request) {
     if (!action || typeof action !== "string") {
       return corsJson({ error: "Missing or invalid action" }, { status: 400 }, (request as any).headers?.get("origin") || undefined);
     }
-    const db = getDatabase();
+    const db = await getDatabase();
 
     if (action === "register") {
       if (!username || typeof username !== 'string' || !password || typeof password !== 'string') {
         return corsJson({ error: "Missing username or password" }, { status: 400 }, (request as any).headers?.get("origin") || undefined);
       }
-      const existingUser = db.getUser(username);
+      const existingUser = await db.getUser(username);
       if (existingUser) {
         return corsJson({ error: "Username already exists" }, { status: 400 }, (request as any).headers?.get("origin") || undefined);
       }
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       };
 
-      db.createUser(newUser);
+      await db.createUser(newUser);
 
       // Generate JWT token
       const token = generateToken({ id: username, username, avatar });
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         return corsJson({ error: "Missing username or password" }, { status: 400 }, (request as any).headers?.get("origin") || undefined);
       }
 
-      const user = db.getUser(username);
+      const user = await db.getUser(username);
 
       if (!user) {
         return corsJson({ error: "Invalid username or password" }, { status: 401 }, (request as any).headers?.get("origin") || undefined);

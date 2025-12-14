@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyToken(token);
     if (!payload) return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
 
-    const db = getDatabase();
+    const db = await getDatabase();
     const searchParams = req.nextUrl.searchParams;
     
     // Support querying by username or id
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       targetUsername = payload.username || payload.id;
     }
     
-    const user = db.getUser(targetUsername);
+    const user = await db.getUser(targetUsername);
     if (!user) return corsJson({ error: "User not found" }, { status: 404 }, req.headers.get("origin") || undefined);
 
     const { password, ...safeUser } = user as any;
@@ -56,8 +56,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { displayName, bio, status, avatar, theme, font, accentColor } = body;
 
-    const db = getDatabase();
-    const user = db.getUser(payload.username || payload.id);
+    const db = await getDatabase();
+    const user = await db.getUser(payload.username || payload.id);
     if (!user) return corsJson({ error: "User not found" }, { status: 404 }, req.headers.get("origin") || undefined);
 
     const updates: any = {};
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest) {
     if (font === "sans" || font === "mono" || font === "serif") updates.font = font;
     if (typeof accentColor === "string" && accentColor.trim()) updates.accentColor = accentColor.trim();
 
-    const updated = db.updateUser(user.username, updates);
+    const updated = await db.updateUser(user.username, updates);
     if (!updated) return corsJson({ error: "Failed to update" }, { status: 500 }, req.headers.get("origin") || undefined);
 
     const { password, ...safeUser } = updated as any;

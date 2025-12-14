@@ -22,9 +22,9 @@ export async function GET(req: NextRequest) {
       return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
     const userId = (payload as any).id;
-    const servers = db.getUserServers(userId);
+    const servers = await db.getUserServers(userId);
 
     return corsJson({ servers: servers || [], success: true }, undefined, req.headers.get("origin") || undefined);
   } catch (error) {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         return corsJson({ error: "Server name is required" }, { status: 400 }, req.headers.get("origin") || undefined);
       }
 
-      const db = getDatabase();
+      const db = await getDatabase();
       const serverId = generateId();
 
       // Create default roles for the server
@@ -120,20 +120,20 @@ export async function POST(req: NextRequest) {
         ],
       };
 
-      const created = db.createServer(server);
+      const created = await db.createServer(server);
       return corsJson({ success: true, server: created }, { status: 201 }, req.headers.get("origin") || undefined);
     }
 
     if (action === "list") {
-      const db = getDatabase();
-      const servers = db.getUserServers(payload.id);
+      const db = await getDatabase();
+      const servers = await db.getUserServers(payload.id);
       return corsJson({ success: true, servers }, undefined, req.headers.get("origin") || undefined);
     }
 
     if (action === "get") {
       const { serverId } = body;
-      const db = getDatabase();
-      const server = db.getServer(serverId);
+      const db = await getDatabase();
+      const server = await db.getServer(serverId);
       if (!server) {
         return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
@@ -146,8 +146,8 @@ export async function POST(req: NextRequest) {
 
     if (action === "createInvite") {
       const { serverId } = body;
-      const db = getDatabase();
-      const server = db.getServer(serverId);
+      const db = await getDatabase();
+      const server = await db.getServer(serverId);
       if (!server) {
         return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
@@ -166,19 +166,19 @@ export async function POST(req: NextRequest) {
         active: true,
       };
 
-      const created = db.createInvite(invite);
+      const created = await db.createInvite(invite);
       return corsJson({ success: true, invite: created }, { status: 201 }, req.headers.get("origin") || undefined);
     }
 
     if (action === "joinWithInvite") {
       const { inviteId } = body;
-      const db = getDatabase();
-      const invite = db.getInvite(inviteId);
+      const db = await getDatabase();
+      const invite = await db.getInvite(inviteId);
       if (!invite || !invite.active) {
         return corsJson({ error: "Invalid invite" }, { status: 400 }, req.headers.get("origin") || undefined);
       }
 
-      const server = db.getServer(invite.serverId);
+      const server = await db.getServer(invite.serverId);
       if (!server) {
         return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
@@ -188,10 +188,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Use the invite
-      db.useInvite(inviteId);
+      await db.useInvite(inviteId);
 
       // Add user to server
-      const updated = db.updateServer(invite.serverId, {
+      const updated = await db.updateServer(invite.serverId, {
         ...server,
         members: [...server.members, payload.id],
       });

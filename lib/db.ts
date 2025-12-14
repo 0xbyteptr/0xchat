@@ -115,6 +115,11 @@ interface ServersData {
 const DATABASE_TYPE = process.env.DATABASE_TYPE || "json";
 const DATA_DIR = path.join(process.cwd(), "data");
 
+// MongoDB support (lazy-loaded)
+import { MongoClient, Db as MongoDb, WithId } from "mongodb";
+const MONGODB_URI = process.env.MONGODB_URI || "";
+const MONGODB_DB = process.env.MONGODB_DB || "0xchat";
+
 // JSON Database Implementation
 class JSONDatabase {
     private dmsFile = path.join(DATA_DIR, "dms.json");
@@ -214,7 +219,7 @@ class JSONDatabase {
   }
 
   // DMs
-  getDMs(userId1: string, userId2: string): DM[] {
+  async getDMs(userId1: string, userId2: string): Promise<DM[]> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.dmsFile)) return [];
@@ -243,7 +248,7 @@ class JSONDatabase {
     }
   }
 
-  addDM(userId1: string, userId2: string, dm: DM): DM {
+  async addDM(userId1: string, userId2: string, dm: DM): Promise<DM> {
     try {
       this.ensureDataDir();
       let data: DMsData = {};
@@ -272,7 +277,7 @@ class JSONDatabase {
     }
   }
 
-  getDMConversations(userId: string): { otherUserId: string; messages: DM[] }[] {
+  async getDMConversations(userId: string): Promise<{ otherUserId: string; messages: DM[] }[]> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.dmsFile)) return [];
@@ -313,7 +318,7 @@ class JSONDatabase {
   }
 
   // Friend Invites
-  getFriendInvites(userId: string): FriendInvite[] {
+  async getFriendInvites(userId: string): Promise<FriendInvite[]> {
     try {
       this.ensureDataDir();
       const data: FriendInvitesData = this.readJsonFileSafe(this.invitesFile, {});
@@ -323,7 +328,7 @@ class JSONDatabase {
     }
   }
 
-  addFriendInvite(invite: FriendInvite): FriendInvite {
+  async addFriendInvite(invite: FriendInvite): Promise<FriendInvite> {
     try {
       this.ensureDataDir();
       let data: FriendInvitesData = this.readJsonFileSafe(this.invitesFile, {});
@@ -337,7 +342,7 @@ class JSONDatabase {
     }
   }
 
-  findFriendInviteById(inviteId: string): { invite: FriendInvite | null; ownerId: string | null } {
+  async findFriendInviteById(inviteId: string): Promise<{ invite: FriendInvite | null; ownerId: string | null }> {
     try {
       this.ensureDataDir();
       const data: FriendInvitesData = this.readJsonFileSafe(this.invitesFile, {});
@@ -352,7 +357,7 @@ class JSONDatabase {
     }
   }
 
-  updateFriendInviteStatusById(inviteId: string, userId: string, status: 'accepted' | 'declined'): boolean {
+  async updateFriendInviteStatusById(inviteId: string, userId: string, status: 'accepted' | 'declined'): Promise<boolean> {
     try {
       this.ensureDataDir();
       const data: FriendInvitesData = this.readJsonFileSafe(this.invitesFile, {});
@@ -373,7 +378,7 @@ class JSONDatabase {
     }
   }
 
-  updateFriendInviteStatus(userId: string, inviteId: string, status: 'accepted' | 'declined'): boolean {
+  async updateFriendInviteStatus(userId: string, inviteId: string, status: 'accepted' | 'declined'): Promise<boolean> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.invitesFile)) return false;
@@ -396,7 +401,7 @@ class JSONDatabase {
     }
   }
 
-  getUser(username: string): User | null {
+  async getUser(username: string): Promise<User | null> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.usersFile)) {
@@ -411,7 +416,7 @@ class JSONDatabase {
     }
   }
 
-  createUser(user: User): User {
+  async createUser(user: User): Promise<User> {
     try {
       this.ensureDataDir();
       let data: UsersData = {};
@@ -436,7 +441,7 @@ class JSONDatabase {
     }
   }
 
-  updateUser(username: string, updates: Partial<User>): User | null {
+  async updateUser(username: string, updates: Partial<User>): Promise<User | null> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.usersFile)) {
@@ -453,7 +458,7 @@ class JSONDatabase {
     }
   }
 
-  getChannelMessages(channel: string): Message[] {
+  async getChannelMessages(channel: string): Promise<Message[]> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.messagesFile)) {
@@ -504,7 +509,7 @@ class JSONDatabase {
     }
   }
 
-  addMessage(channel: string, message: Message): Message {
+  async addMessage(channel: string, message: Message): Promise<Message> {
     try {
       this.ensureDataDir();
       let data: MessagesData = {};
@@ -534,7 +539,7 @@ class JSONDatabase {
     }
   }
 
-  getAllChannels(): string[] {
+  async getAllChannels(): Promise<string[]> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.messagesFile)) {
@@ -550,7 +555,7 @@ class JSONDatabase {
   }
 
   // Server methods
-  createServer(server: Server): Server {
+  async createServer(server: Server): Promise<Server> {
     try {
       this.ensureDataDir();
       let data: ServersData = {};
@@ -566,7 +571,7 @@ class JSONDatabase {
     }
   }
 
-  getServer(serverId: string): Server | null {
+  async getServer(serverId: string): Promise<Server | null> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -581,7 +586,7 @@ class JSONDatabase {
     }
   }
 
-  getUserServers(userId: string): Server[] {
+  async getUserServers(userId: string): Promise<Server[]> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -598,7 +603,7 @@ class JSONDatabase {
     }
   }
 
-  updateServer(serverId: string, updates: Partial<Server>): Server | null {
+  async updateServer(serverId: string, updates: Partial<Server>): Promise<Server | null> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -619,7 +624,7 @@ class JSONDatabase {
     }
   }
 
-  createInvite(invite: Invite): Invite {
+  async createInvite(invite: Invite): Promise<Invite> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -640,7 +645,7 @@ class JSONDatabase {
     }
   }
 
-  getInvite(inviteId: string): Invite | null {
+  async getInvite(inviteId: string): Promise<Invite | null> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -659,7 +664,7 @@ class JSONDatabase {
     }
   }
 
-  useInvite(inviteId: string): boolean {
+  async useInvite(inviteId: string): Promise<boolean> {
     try {
       this.ensureDataDir();
       if (!fs.existsSync(this.serversFile)) {
@@ -686,45 +691,188 @@ class JSONDatabase {
   }
 }
 
+// Minimal MongoDB-backed implementation
+class MongoDBDatabase implements Database {
+  private client: MongoClient;
+  private db!: MongoDb;
+  constructor() {
+    if (!MONGODB_URI) throw new Error("MONGODB_URI not set");
+    this.client = new MongoClient(MONGODB_URI);
+  }
+
+  async init() {
+    await this.client.connect();
+    this.db = this.client.db(MONGODB_DB);
+    // Ensure indexes
+    await this.db.collection("users").createIndex({ username: 1 }, { unique: true });
+    await this.db.collection("dms").createIndex({ conversationId: 1 }, { unique: true });
+    await this.db.collection("friend_invites").createIndex({ id: 1 }, { unique: true });
+    await this.db.collection("servers").createIndex({ id: 1 }, { unique: true });
+  }
+
+  // Users
+  async getUser(username: string): Promise<User | null> {
+    const doc = await this.db.collection<User>("users").findOne({ username });
+    return doc as User | null;
+  }
+
+  createUser(user: User) {
+    return this.db.collection("users").insertOne(user).then(() => user);
+  }
+
+  updateUser(username: string, updates: Partial<User>) {
+    return this.db
+      .collection("users")
+      .findOneAndUpdate({ username }, { $set: updates }, { returnDocument: "after" })
+      .then((r) => r.value as User | null);
+  }
+
+  // Messages (channels)
+  getChannelMessages(channelId: string) {
+    return this.db.collection("messages").findOne({ channelId }).then((doc) => (doc?.messages || []) as Message[]);
+  }
+
+  addMessage(channelId: string, message: Message) {
+    return this.db
+      .collection("messages")
+      .updateOne({ channelId }, { $push: { messages: message } }, { upsert: true })
+      .then(() => message);
+  }
+
+  async getAllChannels(): Promise<string[]> {
+    // Return distinct channel IDs stored in messages collection
+    return this.db.collection("messages").distinct("channelId");
+  }
+
+  // DMs
+  async getDMs(userId1: string, userId2: string) {
+    const conversationId = [userId1, userId2].sort().join("-");
+    const doc = await this.db.collection("dms").findOne({ conversationId });
+    return (doc?.messages || []) as DM[];
+  }
+
+  async addDM(userId1: string, userId2: string, dm: DM) {
+    const conversationId = [userId1, userId2].sort().join("-");
+    await this.db
+      .collection("dms")
+      .updateOne({ conversationId }, { $push: { messages: dm }, $setOnInsert: { conversationId, participants: [userId1, userId2] } }, { upsert: true });
+    return dm;
+  }
+
+  async getDMConversations(userId: string) {
+    const cursor = this.db.collection("dms").find({ participants: userId });
+    const results: { otherUserId: string; messages: DM[] }[] = [];
+    for await (const doc of cursor) {
+      const [a, b] = doc.conversationId.split("-");
+      const other = a === userId ? b : a;
+      results.push({ otherUserId: other, messages: doc.messages || [] });
+    }
+    return results;
+  }
+
+  // Friend invites
+  async getFriendInvites(userId: string): Promise<FriendInvite[]> {
+    return this.db.collection<FriendInvite>("friend_invites").find({ to: userId }).toArray();
+  }
+
+  addFriendInvite(invite: FriendInvite) {
+    return this.db.collection("friend_invites").insertOne(invite).then(() => invite);
+  }
+
+  async findFriendInviteById(inviteId: string): Promise<{ invite: FriendInvite | null; ownerId: string | null }> {
+    const invite = await this.db.collection<FriendInvite>("friend_invites").findOne({ id: inviteId });
+    return { invite: invite || null, ownerId: invite ? invite.to : null };
+  }
+
+  updateFriendInviteStatusById(inviteId: string, userId: string, status: 'accepted' | 'declined') {
+    return this.db
+      .collection("friend_invites")
+      .findOneAndUpdate({ id: inviteId, to: userId }, { $set: { status } })
+      .then((r) => !!r.value);
+  }
+
+  updateFriendInviteStatus(userId: string, inviteId: string, status: 'accepted' | 'declined') {
+    return this.updateFriendInviteStatusById(inviteId, userId, status);
+  }
+
+  // Servers (light impl)
+  createServer(server: Server) {
+    return this.db.collection<Server>("servers").insertOne(server).then(() => server);
+  }
+
+  async getServer(serverId: string): Promise<Server | null> {
+    const doc = await this.db.collection<Server>("servers").findOne({ id: serverId });
+    return doc as Server | null;
+  }
+
+  async getUserServers(userId: string): Promise<Server[]> {
+    return this.db.collection<Server>("servers").find({ members: userId }).toArray();
+  }
+
+  updateServer(serverId: string, updates: Partial<Server>) {
+    return this.db
+      .collection("servers")
+      .findOneAndUpdate({ id: serverId }, { $set: updates }, { returnDocument: "after" })
+      .then((r) => r.value as Server | null);
+  }
+
+  createInvite(invite: Invite) {
+    return this.db.collection<Invite>("invites").insertOne(invite).then(() => invite);
+  }
+
+  async getInvite(inviteId: string): Promise<Invite | null> {
+    const doc = await this.db.collection<Invite>("invites").findOne({ id: inviteId });
+    return doc as Invite | null;
+  }
+
+  useInvite(inviteId: string) {
+    return this.db
+      .collection("invites")
+      .findOneAndUpdate({ id: inviteId, active: true }, { $inc: { uses: 1 } })
+      .then((r) => !!r.value);
+  }
+
+}
+
 // Abstract Database Interface for future implementations
 abstract class Database {
-  abstract getUser(username: string): User | null;
-  abstract createUser(user: User): User;
-  abstract updateUser(username: string, updates: Partial<User>): User | null;
-  abstract getChannelMessages(channel: string): Message[];
-  abstract addMessage(channel: string, message: Message): Message;
-  abstract getAllChannels(): string[];
+  abstract getUser(username: string): Promise<User | null>;
+  abstract createUser(user: User): Promise<User>;
+  abstract updateUser(username: string, updates: Partial<User>): Promise<User | null>;
+  abstract getChannelMessages(channel: string): Promise<Message[]>;
+  abstract addMessage(channel: string, message: Message): Promise<Message>;
+  abstract getAllChannels(): Promise<string[]>;
   // Direct messages
-  abstract getDMs(userId1: string, userId2: string): DM[];
-  abstract addDM(userId1: string, userId2: string, dm: DM): DM;
-  abstract getDMConversations(userId: string): { otherUserId: string; messages: DM[] }[];
+  abstract getDMs(userId1: string, userId2: string): Promise<DM[]>;
+  abstract addDM(userId1: string, userId2: string, dm: DM): Promise<DM>;
+  abstract getDMConversations(userId: string): Promise<{ otherUserId: string; messages: DM[] }[]>;
   // Friend invites
-  abstract getFriendInvites(userId: string): FriendInvite[];
-  abstract addFriendInvite(invite: FriendInvite): FriendInvite;
-  abstract findFriendInviteById(inviteId: string): { invite: FriendInvite | null; ownerId: string | null };
-  abstract updateFriendInviteStatusById(inviteId: string, userId: string, status: 'accepted' | 'declined'): boolean;
-  abstract updateFriendInviteStatus(userId: string, inviteId: string, status: 'accepted' | 'declined'): boolean;
-  abstract createServer(server: Server): Server;
-  abstract getServer(serverId: string): Server | null;
-  abstract getUserServers(userId: string): Server[];
-  abstract updateServer(serverId: string, updates: Partial<Server>): Server | null;
-  abstract createInvite(invite: Invite): Invite;
-  abstract getInvite(inviteId: string): Invite | null;
-  abstract useInvite(inviteId: string): boolean;
+  abstract getFriendInvites(userId: string): Promise<FriendInvite[]>;
+  abstract addFriendInvite(invite: FriendInvite): Promise<FriendInvite>;
+  abstract findFriendInviteById(inviteId: string): Promise<{ invite: FriendInvite | null; ownerId: string | null }>;
+  abstract updateFriendInviteStatusById(inviteId: string, userId: string, status: 'accepted' | 'declined'): Promise<boolean>;
+  abstract updateFriendInviteStatus(userId: string, inviteId: string, status: 'accepted' | 'declined'): Promise<boolean>;
+  abstract createServer(server: Server): Promise<Server>;
+  abstract getServer(serverId: string): Promise<Server | null>;
+  abstract getUserServers(userId: string): Promise<Server[]>;
+  abstract updateServer(serverId: string, updates: Partial<Server>): Promise<Server | null>;
+  abstract createInvite(invite: Invite): Promise<Invite>;
+  abstract getInvite(inviteId: string): Promise<Invite | null>;
+  abstract useInvite(inviteId: string): Promise<boolean>;
 }
 
 // Factory function to get appropriate database implementation
 let dbInstance: Database | null = null;
 
-export function getDatabase(): Database {
+export async function getDatabase(): Promise<Database> {
   if (!dbInstance) {
     if (DATABASE_TYPE === "json") {
       dbInstance = new JSONDatabase();
     } else if (DATABASE_TYPE === "mongodb") {
-      // Future: implement MongoDB
-      throw new Error("MongoDB not yet implemented");
+      const m = new MongoDBDatabase();
+      await m.init();
+      dbInstance = m as unknown as Database;
     } else if (DATABASE_TYPE === "postgres") {
-      // Future: implement PostgreSQL
       throw new Error("PostgreSQL not yet implemented");
     } else {
       throw new Error(`Unknown database type: ${DATABASE_TYPE}`);

@@ -27,8 +27,8 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
 
     const user = auth.user!;
     const { id } = await ctx.params;
-    const db = getDatabase();
-    const { invite } = db.findFriendInviteById(id);
+    const db = await getDatabase();
+    const { invite } = await db.findFriendInviteById(id);
     if (!invite) {
       return NextResponse.json({ error: "Invite not found" }, { status: 404 });
     }
@@ -55,8 +55,8 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
       return NextResponse.json({ error: "Status must be 'accepted' or 'declined'" }, { status: 400 });
     }
 
-    const db = getDatabase();
-    const { invite } = db.findFriendInviteById(id);
+    const db = await getDatabase();
+    const { invite } = await db.findFriendInviteById(id);
     if (!invite) {
       return NextResponse.json({ error: "Invite not found" }, { status: 404 });
     }
@@ -66,12 +66,11 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
       return NextResponse.json({ error: "Not authorized to update this invite" }, { status: 403 });
     }
 
-    const ok = db.updateFriendInviteStatusById(id, user.id, status);
+    const ok = await db.updateFriendInviteStatusById(id, user.id, status);
     if (!ok) {
       return NextResponse.json({ error: "Failed to update invite" }, { status: 500 });
     }
-
-    const updated = db.findFriendInviteById(id).invite;
+    const updated = (await db.findFriendInviteById(id)).invite;
     return NextResponse.json({ invite: updated });
   } catch (error) {
     console.error("Friend invite PATCH error:", error);
