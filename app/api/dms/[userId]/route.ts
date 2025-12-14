@@ -166,7 +166,8 @@ export async function POST(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2000);
     try {
-      await fetch("http://localhost:3000/api/broadcast", {
+        const broadcastUrl = process.env.BROADCAST_API_URL || `http://${process.env.API_HOST || "localhost"}:${process.env.PORT || 3000}/api/broadcast`;
+      await fetch(broadcastUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

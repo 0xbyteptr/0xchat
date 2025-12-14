@@ -130,7 +130,9 @@ wss.on("connection", (ws) => {
 
 server.listen(WS_PORT, "0.0.0.0", () => {
   console.log(`🚀 Real-time WebSocket server running on port ${WS_PORT}`);
-  console.log(`📡 HTTP broadcast endpoint: POST http://localhost:${WS_PORT}/broadcast`);
+  const broadcastHost = process.env.WS_HOST || "localhost";
+  const broadcastUrl = process.env.WS_BROADCAST_URL || `http://${broadcastHost}:${WS_PORT}/broadcast`;
+  console.log(`📡 HTTP broadcast endpoint: POST ${broadcastUrl}`);
 });
 
 process.on("SIGINT", () => {

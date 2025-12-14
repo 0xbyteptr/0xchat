@@ -293,8 +293,19 @@ export default function DMChat({
 
   const getWebSocketURL = (): string => {
     if (typeof window === "undefined") return "";
+    // Allow configuring the WS URL via NEXT_PUBLIC_WS_URL; otherwise use same-origin host
+    const configured = (window as any).NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL;
+    if (configured && typeof configured === "string" && configured.trim()) {
+      if (/^wss?:\/\//i.test(configured)) return configured; // already full URL
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${protocol}//${configured.replace(/^\/+/, "")}`;
+    }
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//ws.byteptr.xyz/`;
+    const portFromEnv = (window as any).NEXT_PUBLIC_WS_PORT || process.env.NEXT_PUBLIC_WS_PORT;
+    const host = window.location.hostname;
+    const port = `:${portFromEnv || "3002"}`;
+    return `${protocol}//${host}${port}/`;
   };
 
   // Initialize websocket subscription for DM updates

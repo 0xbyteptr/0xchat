@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { corsJson } from "@/lib/cors";
 import { getDatabase } from "@/lib/db";
 import { generateToken } from "@/lib/jwt";
 import { ethers } from "ethers";
@@ -8,10 +9,7 @@ export async function POST(request: NextRequest) {
     const { address, message, signature } = await request.json();
 
     if (!address || !message || !signature) {
-      return NextResponse.json(
-        { error: "Missing required fields: address, message, signature" },
-        { status: 400 }
-      );
+      return corsJson({ error: "Missing required fields: address, message, signature" }, { status: 400 }, request.headers.get("origin") || undefined);
     }
 
     // Verify the signature
@@ -19,18 +17,12 @@ export async function POST(request: NextRequest) {
     try {
       recoveredAddress = ethers.verifyMessage(message, signature);
     } catch (err) {
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 401 }
-      );
+      return corsJson({ error: "Invalid signature" }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
     // Check that signature matches the claimed address
     if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-      return NextResponse.json(
-        { error: "Signature does not match wallet address" },
-        { status: 401 }
-      );
+      return corsJson({ error: "Signature does not match wallet address" }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
     const db = getDatabase();
@@ -68,21 +60,9 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
     });
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        avatar: user.avatar,
-        displayName: user.displayName,
-      },
-      token,
-    });
+    return corsJson({ success: true, user: { id: user.id, username: user.username, avatar: user.avatar, displayName: user.displayName }, token }, undefined, request.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Web3 auth error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return corsJson({ error: "Internal server error" }, { status: 500 }, request.headers.get("origin") || undefined);
   }
 }

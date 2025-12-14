@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { corsJson } from "@/lib/cors";
 import { getDatabase } from "@/lib/db";
 import { verifyToken, extractToken } from "@/lib/jwt";
 import { broadcast, getWSServer } from "@/lib/ws-server";
@@ -23,20 +24,14 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
     if (!auth.authenticated) {
-      return NextResponse.json(
-        { error: auth.error },
-        { status: 401 }
-      );
+      return corsJson({ error: auth.error }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
     const { searchParams } = new URL(request.url);
     const channel = searchParams.get("channel");
 
     if (!channel) {
-      return NextResponse.json(
-        { error: "Channel is required" },
-        { status: 400 }
-      );
+      return corsJson({ error: "Channel is required" }, { status: 400 }, request.headers.get("origin") || undefined);
     }
 
     const db = getDatabase();
@@ -71,13 +66,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ messages: hydrated });
+    return corsJson({ messages: hydrated }, undefined, request.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Messages GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return corsJson({ error: "Internal server error" }, { status: 500 }, request.headers.get("origin") || undefined);
   }
 }
 
@@ -85,19 +77,13 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
     if (!auth.authenticated) {
-      return NextResponse.json(
-        { error: auth.error },
-        { status: 401 }
-      );
+      return corsJson({ error: auth.error }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
     const { channel, message } = await request.json();
 
     if (!channel || !message) {
-      return NextResponse.json(
-        { error: "Channel and message are required" },
-        { status: 400 }
-      );
+      return corsJson({ error: "Channel and message are required" }, { status: 400 }, request.headers.get("origin") || undefined);
     }
 
     const db = getDatabase();
@@ -124,12 +110,9 @@ export async function POST(request: NextRequest) {
       console.error("WS broadcast error:", err);
     }
 
-    return NextResponse.json({ success: true });
+    return corsJson({ success: true }, undefined, request.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Messages POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return corsJson({ error: "Internal server error" }, { status: 500 }, request.headers.get("origin") || undefined);
   }
 }

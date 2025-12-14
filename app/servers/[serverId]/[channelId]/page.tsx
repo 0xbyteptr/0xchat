@@ -41,12 +41,17 @@ const decodeUserFromToken = (token: string): User | null => {
   }
 };
 
-// Construct WebSocket URL - proxied through nginx via ws.byteptr.xyz domain
+// Construct WebSocket URL - configurable via NEXT_PUBLIC_WS_URL or falls back to same-origin
 const getWebSocketURL = (): string => {
   if (typeof window === "undefined") return "";
-  // Always use ws.byteptr.xyz for WebSocket (nginx proxies to port 3002)
+  const configured = (window as any).NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL;
+  if (configured && typeof configured === "string" && configured.trim()) {
+    if (/^wss?:\/\//i.test(configured)) return configured;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${configured.replace(/^\/+/, "")}`;
+  }
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//ws.byteptr.xyz/`;
+  return `${protocol}//${window.location.host}/`;
 };
 
 export default function ServerChat() {

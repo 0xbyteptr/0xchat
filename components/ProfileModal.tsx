@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { getApiUrl } from "@/lib/api";
 import { User } from "@/lib/types";
 
 interface ProfileModalProps {
@@ -70,20 +71,40 @@ export default function ProfileModal({
     setError("");
 
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64String = event.target?.result as string;
-        setAvatar(base64String);
+      // Upload file to /api/upload with type=avatars and userId
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "avatars");
+      formData.append("userId", profile?.id || "");
+
+      const res = await fetch(getApiUrl("/api/upload"), {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err?.error || "Upload failed");
         setIsUploadingAvatar(false);
-      };
-      reader.onerror = () => {
-        setError("Failed to read file");
-        setIsUploadingAvatar(false);
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+
+      const data = await res.json();
+      if (data?.url) {
+        setAvatar(data.url);
+      } else {
+        // Fallback: read as base64
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64String = event.target?.result as string;
+          setAvatar(base64String);
+        };
+        reader.readAsDataURL(file);
+      }
     } catch (err) {
       console.error("Avatar upload error:", err);
       setError("Failed to upload avatar");
+    } finally {
       setIsUploadingAvatar(false);
     }
   };

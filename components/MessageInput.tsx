@@ -13,6 +13,7 @@ interface MessageInputProps {
   onChange: (value: string) => void;
   onSubmit: (e: FormEvent, files?: File[]) => void;
   availableUsers?: User[];
+  currentUserId?: string | null;
 }
 
 export default function MessageInput({
@@ -22,6 +23,7 @@ export default function MessageInput({
   onChange,
   onSubmit,
   availableUsers = [],
+  currentUserId,
 }: MessageInputProps) {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -137,7 +139,9 @@ export default function MessageInput({
             onFileSelect={handleFileSelect}
             maxSize={50}
             maxFiles={10}
-            acceptedTypes={["image/*", "video/*", "audio/*", ".pdf", ".doc", ".docx"]}
+            acceptedTypes={["image/*", "video/*", "audio/*", ".pdf", ".doc", ".docx", '.exe', '.apk', '.zip', '.rar', '.gz', '.tar', '.xz']}
+            type="images"
+            userId={currentUserId || undefined}
           />
         </div>
       )}

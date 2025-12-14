@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { corsJson } from "@/lib/cors";
 import { getDatabase } from "@/lib/db";
 import { verifyToken, extractToken } from "@/lib/jwt";
 import { Server, Invite, ServerRole, ServerMember } from "@/lib/db";
@@ -13,22 +14,19 @@ export async function GET(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return corsJson({ error: "Unauthorized" }, { status: 401 }, req.headers.get("origin") || undefined);
     }
 
     const payload = verifyToken(token);
     if (!payload) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
     }
 
     const db = getDatabase();
     const userId = (payload as any).id;
     const servers = db.getUserServers(userId);
 
-    return NextResponse.json({ 
-      servers: servers || [],
-      success: true 
-    });
+    return corsJson({ servers: servers || [], success: true }, undefined, req.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Failed to fetch servers", error);
     return NextResponse.json(
@@ -42,12 +40,12 @@ export async function POST(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return corsJson({ error: "Unauthorized" }, { status: 401 }, req.headers.get("origin") || undefined);
     }
 
     const payload = verifyToken(token);
     if (!payload) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
     }
 
     const body = await req.json();
@@ -56,10 +54,7 @@ export async function POST(req: NextRequest) {
     if (action === "create") {
       const { name, description, icon } = body;
       if (!name || !name.trim()) {
-        return NextResponse.json(
-          { error: "Server name is required" },
-          { status: 400 }
-        );
+        return corsJson({ error: "Server name is required" }, { status: 400 }, req.headers.get("origin") || undefined);
       }
 
       const db = getDatabase();
@@ -122,16 +117,13 @@ export async function POST(req: NextRequest) {
       };
 
       const created = db.createServer(server);
-      return NextResponse.json(
-        { success: true, server: created },
-        { status: 201 }
-      );
+      return corsJson({ success: true, server: created }, { status: 201 }, req.headers.get("origin") || undefined);
     }
 
     if (action === "list") {
       const db = getDatabase();
       const servers = db.getUserServers(payload.id);
-      return NextResponse.json({ success: true, servers });
+      return corsJson({ success: true, servers }, undefined, req.headers.get("origin") || undefined);
     }
 
     if (action === "get") {
@@ -139,13 +131,13 @@ export async function POST(req: NextRequest) {
       const db = getDatabase();
       const server = db.getServer(serverId);
       if (!server) {
-        return NextResponse.json({ error: "Server not found" }, { status: 404 });
+        return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
       // Check if user is member
       if (!server.members.includes(payload.id) && server.ownerId !== payload.id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return corsJson({ error: "Forbidden" }, { status: 403 }, req.headers.get("origin") || undefined);
       }
-      return NextResponse.json({ success: true, server });
+      return corsJson({ success: true, server }, undefined, req.headers.get("origin") || undefined);
     }
 
     if (action === "createInvite") {
@@ -153,11 +145,11 @@ export async function POST(req: NextRequest) {
       const db = getDatabase();
       const server = db.getServer(serverId);
       if (!server) {
-        return NextResponse.json({ error: "Server not found" }, { status: 404 });
+        return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
       // Only owner can create invites
       if (server.ownerId !== payload.id) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return corsJson({ error: "Forbidden" }, { status: 403 }, req.headers.get("origin") || undefined);
       }
 
       const invite: Invite = {
@@ -171,10 +163,7 @@ export async function POST(req: NextRequest) {
       };
 
       const created = db.createInvite(invite);
-      return NextResponse.json(
-        { success: true, invite: created },
-        { status: 201 }
-      );
+      return corsJson({ success: true, invite: created }, { status: 201 }, req.headers.get("origin") || undefined);
     }
 
     if (action === "joinWithInvite") {
@@ -182,19 +171,16 @@ export async function POST(req: NextRequest) {
       const db = getDatabase();
       const invite = db.getInvite(inviteId);
       if (!invite || !invite.active) {
-        return NextResponse.json({ error: "Invalid invite" }, { status: 400 });
+        return corsJson({ error: "Invalid invite" }, { status: 400 }, req.headers.get("origin") || undefined);
       }
 
       const server = db.getServer(invite.serverId);
       if (!server) {
-        return NextResponse.json({ error: "Server not found" }, { status: 404 });
+        return corsJson({ error: "Server not found" }, { status: 404 }, req.headers.get("origin") || undefined);
       }
 
       if (server.members.includes(payload.id)) {
-        return NextResponse.json(
-          { error: "Already a member" },
-          { status: 400 }
-        );
+        return corsJson({ error: "Already a member" }, { status: 400 }, req.headers.get("origin") || undefined);
       }
 
       // Use the invite
@@ -206,15 +192,12 @@ export async function POST(req: NextRequest) {
         members: [...server.members, payload.id],
       });
 
-      return NextResponse.json({ success: true, server: updated });
+      return corsJson({ success: true, server: updated }, undefined, req.headers.get("origin") || undefined);
     }
 
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    return corsJson({ error: "Invalid action" }, { status: 400 }, req.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Server error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return corsJson({ error: "Internal server error" }, { status: 500 }, req.headers.get("origin") || undefined);
   }
 }

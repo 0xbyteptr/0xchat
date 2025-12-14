@@ -16,8 +16,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Forward to WebSocket server
-    const wsServerUrl = `http://localhost:3002/broadcast`;
+    // Forward to WebSocket server (configurable via BROADCAST_API_URL or WS_BROADCAST_URL)
+    const wsServerUrl =
+      process.env.BROADCAST_API_URL ||
+      process.env.WS_BROADCAST_URL ||
+      `http://${process.env.API_HOST || "localhost"}:${process.env.WS_PORT || 3002}/broadcast`;
     const response = await fetch(wsServerUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

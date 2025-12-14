@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { corsJson } from "@/lib/cors";
 import { getDatabase } from "@/lib/db";
 import { extractToken, verifyToken } from "@/lib/jwt";
 
 export async function GET(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token) return corsJson({ error: "Unauthorized" }, { status: 401 }, req.headers.get("origin") || undefined);
 
     const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    if (!payload) return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
 
     const db = getDatabase();
     const searchParams = req.nextUrl.searchParams;
@@ -29,10 +30,10 @@ export async function GET(req: NextRequest) {
     }
     
     const user = db.getUser(targetUsername);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) return corsJson({ error: "User not found" }, { status: 404 }, req.headers.get("origin") || undefined);
 
     const { password, ...safeUser } = user as any;
-    return NextResponse.json({ success: true, user: safeUser });
+    return corsJson({ success: true, user: safeUser }, undefined, req.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Profile GET error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -42,17 +43,17 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const token = extractToken(req.headers.get("authorization") || "");
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token) return corsJson({ error: "Unauthorized" }, { status: 401 }, req.headers.get("origin") || undefined);
 
     const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    if (!payload) return corsJson({ error: "Invalid token" }, { status: 401 }, req.headers.get("origin") || undefined);
 
     const body = await req.json();
     const { displayName, bio, status, avatar, theme, font, accentColor } = body;
 
     const db = getDatabase();
     const user = db.getUser(payload.username || payload.id);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) return corsJson({ error: "User not found" }, { status: 404 }, req.headers.get("origin") || undefined);
 
     const updates: any = {};
     if (typeof displayName === "string") updates.displayName = displayName.slice(0, 64);
@@ -70,12 +71,12 @@ export async function PATCH(req: NextRequest) {
     if (typeof accentColor === "string" && accentColor.trim()) updates.accentColor = accentColor.trim();
 
     const updated = db.updateUser(user.username, updates);
-    if (!updated) return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+    if (!updated) return corsJson({ error: "Failed to update" }, { status: 500 }, req.headers.get("origin") || undefined);
 
     const { password, ...safeUser } = updated as any;
-    return NextResponse.json({ success: true, user: safeUser });
+    return corsJson({ success: true, user: safeUser }, undefined, req.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Profile PATCH error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return corsJson({ error: "Internal server error" }, { status: 500 }, req.headers.get("origin") || undefined);
   }
 }

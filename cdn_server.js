@@ -14,7 +14,8 @@ const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 app.use(compression());
 app.use(
   cors({
-    origin: ["https://byteptr.xyz", "https://dev.byteptr.xyz", "http://localhost:3000"],
+    // Allowed origins for CORS; configurable via CDN_ALLOWED_ORIGINS (comma-separated)
+    origin: (process.env.CDN_ALLOWED_ORIGINS || "https://byteptr.xyz,https://dev.byteptr.xyz,http://localhost:3000").split(",").map((s) => s.trim()),
     credentials: true,
   })
 );
@@ -96,10 +97,12 @@ app.get("/uploads/:filename", (req, res) => {
 });
 
 // Serve files by type
-app.get("/files/:type/:filename", (req, res) => {
-  const { type, filename } = req.params;
+app.get("/files/:type/*", (req, res) => {
+  const { type } = req.params;
+  // wildcard param is in req.params[0]
+  const filename = req.params[0];
 
-  if (filename.includes("..") || filename.includes("/") || type.includes("..") || type.includes("/")) {
+  if (!filename || filename.includes("..") || type.includes("..")) {
     return res.status(400).json({ error: "Invalid path" });
   }
 
@@ -242,7 +245,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`\n╔════════════════════════════════════╗\n║   📡 CDN Server Started            ║\n╠════════════════════════════════════╣\n║ URL: http://localhost:${PORT}        ║\n║ Data: ${DATA_DIR}  ║\n║                                    ║\n║ Endpoints:                         ║\n║ GET  /health                       ║\n║ GET  /uploads/:filename            ║\n║ GET  /files/:type/:filename        ║\n║ GET  /list/:directory              ║\n║ POST /cleanup                      ║\n╚════════════════════════════════════╝\n  `);
+  const cdnHost = process.env.CDN_HOST || 'localhost';
+  console.log(`\n╔════════════════════════════════════╗\n║   📡 CDN Server Started            ║\n╠════════════════════════════════════╣\n║ URL: http://${cdnHost}:${PORT}        ║\n║ Data: ${DATA_DIR}  ║\n║                                    ║\n║ Endpoints:                         ║\n║ GET  /health                       ║\n║ GET  /uploads/:filename            ║\n║ GET  /files/:type/:filename        ║\n║ GET  /list/:directory              ║\n║ POST /cleanup                      ║\n╚════════════════════════════════════╝\n  `);
 });
 
 // Graceful shutdown

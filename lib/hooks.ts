@@ -118,14 +118,15 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(
-    async (username: string, password: string): Promise<User | null> => {
+    async (username: string, password: string): Promise<{ user: User | null; error?: string }> => {
       setAuthError("");
       setIsAuthLoading(true);
 
       if (!username.trim() || !password.trim()) {
-        setAuthError(ERROR_MESSAGES.FILL_FIELDS);
+        const msg = ERROR_MESSAGES.FILL_FIELDS;
+        setAuthError(msg);
         setIsAuthLoading(false);
-        return null;
+        return { user: null, error: msg };
       }
 
       try {
@@ -141,28 +142,32 @@ export function useAuth() {
         const { data, raw } = await parseJsonSafe(response);
 
         if (!response.ok) {
-          setAuthError((data as AuthResponse)?.error || raw || ERROR_MESSAGES.INTERNAL_ERROR);
-          return null;
+          const msg = (data as AuthResponse)?.error || raw || ERROR_MESSAGES.INTERNAL_ERROR;
+          setAuthError(msg);
+          return { user: null, error: msg };
         }
 
         const authData = data as AuthResponse;
         if (!authData?.token) {
-          setAuthError("Server error: No token received");
-          return null;
+          const msg = "Server error: No token received";
+          setAuthError(msg);
+          return { user: null, error: msg };
         }
 
         if (!authData.user) {
-          setAuthError("Server error: No user data received");
-          return null;
+          const msg = "Server error: No user data received";
+          setAuthError(msg);
+          return { user: null, error: msg };
         }
 
         // Save JWT token
         saveToken(authData.token);
-        return authData.user;
+        return { user: authData.user };
       } catch (error) {
         console.error("Login error:", error);
-        setAuthError(ERROR_MESSAGES.NETWORK_ERROR);
-        return null;
+        const msg = ERROR_MESSAGES.NETWORK_ERROR;
+        setAuthError(msg);
+        return { user: null, error: msg };
       } finally {
         setIsAuthLoading(false);
       }
@@ -171,14 +176,15 @@ export function useAuth() {
   );
 
   const register = useCallback(
-    async (username: string, password: string): Promise<User | null> => {
+    async (username: string, password: string): Promise<{ user: User | null; error?: string }> => {
       setAuthError("");
       setIsAuthLoading(true);
 
       if (!username.trim() || !password.trim()) {
-        setAuthError(ERROR_MESSAGES.FILL_FIELDS);
+        const msg = ERROR_MESSAGES.FILL_FIELDS;
+        setAuthError(msg);
         setIsAuthLoading(false);
-        return null;
+        return { user: null, error: msg };
       }
 
       try {
@@ -194,31 +200,35 @@ export function useAuth() {
         const { data, raw } = await parseJsonSafe(response);
 
         if (!response.ok) {
-          setAuthError((data as AuthResponse)?.error || raw || ERROR_MESSAGES.INTERNAL_ERROR);
-          return null;
+          const msg = (data as AuthResponse)?.error || raw || ERROR_MESSAGES.INTERNAL_ERROR;
+          setAuthError(msg);
+          return { user: null, error: msg };
         }
 
         const authData = data as AuthResponse;
         if (!authData?.token) {
-          setAuthError("Server error: No token received");
+          const msg = "Server error: No token received";
+          setAuthError(msg);
           console.error("No token in register response:", authData);
-          return null;
+          return { user: null, error: msg };
         }
 
         console.log("Register response token:", authData.token.substring(0, 50) + "...");
 
         if (!authData.user) {
-          setAuthError("Server error: No user data received");
-          return null;
+          const msg = "Server error: No user data received";
+          setAuthError(msg);
+          return { user: null, error: msg };
         }
 
         // Save JWT token
         saveToken(authData.token);
-        return authData.user;
+        return { user: authData.user };
       } catch (error) {
         console.error("Registration error:", error);
-        setAuthError(ERROR_MESSAGES.NETWORK_ERROR);
-        return null;
+        const msg = ERROR_MESSAGES.NETWORK_ERROR;
+        setAuthError(msg);
+        return { user: null, error: msg };
       } finally {
         setIsAuthLoading(false);
       }

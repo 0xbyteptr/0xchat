@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const type = (formData.get("type") as string) || "uploads"; // avatars | images | uploads
+    const userId = (formData.get("userId") as string) || null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -29,22 +31,25 @@ export async function POST(req: NextRequest) {
     // Get file extension
     const ext = file.name.split(".").pop() || "bin";
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), "data", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    // Determine destination directory
+    const safeType = type === "avatars" || type === "images" ? type : "uploads";
+    const baseDir = join(process.cwd(), "data", safeType);
+    const targetDir = userId ? join(baseDir, userId) : baseDir;
+
+    if (!existsSync(targetDir)) {
+      await mkdir(targetDir, { recursive: true });
     }
 
     // Save file with hash.extension naming
     const filename = `${hash}.${ext}`;
-    const filepath = join(uploadsDir, filename);
+    const filepath = join(targetDir, filename);
 
     await writeFile(filepath, uint8Array);
 
-    // Use CDN URL if available, otherwise use app URL
+    // Use CDN URL if available, otherwise use app-relative files route
     const fileUrl = CDN_URL
-      ? `${CDN_URL}/uploads/${filename}`
-      : `/data/uploads/${filename}`;
+      ? `${CDN_URL}/files/${safeType}/${userId ? `${encodeURIComponent(userId)}/${filename}` : filename}`
+      : `/files/${safeType}/${userId ? `${encodeURIComponent(userId)}/${filename}` : filename}`;
 
     return NextResponse.json({
       success: true,
@@ -54,6 +59,8 @@ export async function POST(req: NextRequest) {
       size: file.size,
       mimeType: file.type,
       url: fileUrl,
+      type: safeType,
+      userId: userId || null,
     });
   } catch (error) {
     console.error("Upload error:", error);

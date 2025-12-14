@@ -147,22 +147,21 @@ export default function Home() {
     setAuthError("");
 
     let user: User | null = null;
+    let authResult =
+      isRegistering ? await register(username, password) : await login(username, password);
 
-    if (isRegistering) {
-      user = await register(username, password);
-    } else {
-      user = await login(username, password);
-    }
-
-    if (user) {
+    if (authResult?.user) {
+      user = authResult.user;
       setCurrentUser(user);
       setUsername("");
       setPassword("");
       // The useAuth hook's saveToken will trigger the token state update,
       // which will trigger the redirect effect below
     } else {
-      // Auth failed, error is already set by useAuth hook
-      console.error("Auth failed:", authError);
+      const errMsg = authResult?.error || authError || "Authentication failed";
+      // Ensure UI state shows the error
+      setAuthError(errMsg);
+      console.error("Auth failed:", errMsg);
     }
   };
 

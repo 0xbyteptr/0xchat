@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { corsJson } from "@/lib/cors";
 import { verify } from "jsonwebtoken";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return corsJson({ error: "Unauthorized" }, { status: 401 }, request.headers.get("origin") || undefined);
     }
 
     const decoded = verify(token, JWT_SECRET) as { id: string };
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       dmsData = JSON.parse(await readFile(dmsFilePath, "utf8"));
     } catch (err) {
       // DMs file doesn't exist or is invalid
-      return NextResponse.json({ success: true, conversations: [] });
+      return corsJson({ success: true, conversations: [] }, undefined, request.headers.get("origin") || undefined);
     }
 
     // Read users file
@@ -93,15 +94,9 @@ export async function GET(request: NextRequest) {
           new Date(a.lastMessageAt).getTime()
       );
 
-    return NextResponse.json({
-      success: true,
-      conversations: userConversations,
-    });
+    return corsJson({ success: true, conversations: userConversations }, undefined, request.headers.get("origin") || undefined);
   } catch (error) {
     console.error("Error fetching DMs:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch DMs" },
-      { status: 500 }
-    );
+    return corsJson({ error: "Failed to fetch DMs" }, { status: 500 }, request.headers.get("origin") || undefined);
   }
 }

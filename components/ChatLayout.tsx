@@ -149,6 +149,7 @@ export default function ChatLayout({
             onChange={onMessageInputChange}
             onSubmit={onSendMessage}
             availableUsers={serverMembers}
+            currentUserId={currentUser?.id}
           />
         </div>
       </div>

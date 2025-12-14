@@ -9,6 +9,8 @@ interface FileUploadProps {
   maxSize?: number; // in MB
   acceptedTypes?: string[];
   maxFiles?: number;
+  type?: "uploads" | "avatars" | "images";
+  userId?: string | null;
 }
 
 export default function FileUpload({
@@ -18,6 +20,8 @@ export default function FileUpload({
     '.xlsx', '.xls', '.ppt', '.pptx', '.zip', '.rar'
   ],
   maxFiles = 5,
+  type,
+  userId,
 }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -113,6 +117,8 @@ export default function FileUpload({
       for (const file of selectedFiles) {
         const formData = new FormData();
         formData.append("file", file);
+        if (type) formData.append("type", type);
+        if (userId) formData.append("userId", userId);
 
         const response = await fetch(getApiUrl("/api/upload"), {
           method: "POST",
@@ -126,7 +132,7 @@ export default function FileUpload({
         }
 
         const data = await response.json();
-        if (data.success && onFileSelect) {
+          if (data.success && onFileSelect) {
           const preview = previews.find((p) => p.file === file)?.preview;
           onFileSelect(file, preview);
         }

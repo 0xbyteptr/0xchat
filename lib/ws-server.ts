@@ -1,13 +1,15 @@
 import { WebSocketServer, WebSocket } from "ws";
 
-// Resolve WebSocket port - use WS_PORT env var, or default to same port as HTTP
+// Resolve WebSocket port - prefer WS_PORT, otherwise fallback to a safe default (3002)
 function resolvePort(): number {
   const direct = process.env.WS_PORT;
   if (direct && Number(direct)) return Number(direct);
-  
-  // Use PORT env var (set by Next.js or your server) or default to 3000
-  const httpPort = process.env.PORT ? Number(process.env.PORT) : 3000;
-  return httpPort;
+
+  const httpPort = process.env.PORT ? Number(process.env.PORT) : null;
+  if (httpPort && httpPort !== 3000) return httpPort;
+
+  // Default dev WS port
+  return 3002;
 }
 
 const WS_PORT = resolvePort();

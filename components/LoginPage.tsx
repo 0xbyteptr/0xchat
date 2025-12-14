@@ -27,14 +27,10 @@ export default function LoginPage() {
     setAuthError("");
 
     let user: User | null = null;
+    const authResult = isRegistering ? await register(username, password) : await login(username, password);
 
-    if (isRegistering) {
-      user = await register(username, password);
-    } else {
-      user = await login(username, password);
-    }
-
-    if (user) {
+    if (authResult?.user) {
+      user = authResult.user;
       setCurrentUser(user);
       setUsername("");
       setPassword("");
@@ -43,7 +39,9 @@ export default function LoginPage() {
         router.push("/servers");
       }, 100);
     } else {
-      console.error("Auth failed:", authError);
+      const errMsg = authResult?.error || authError || "Authentication failed";
+      setAuthError(errMsg);
+      console.error("Auth failed:", errMsg);
     }
   };
 

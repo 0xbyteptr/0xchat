@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/hooks";
 import DMList from "@/components/DMList";
 import DMChat from "@/components/DMChat";
 import ServerList from "@/components/ServerList";
+import CreateServerModal from "@/components/CreateServerModal";
 import NewDMModal from "@/components/NewDMModal";
 import UserProfileCard from "@/components/UserProfileCard";
 import ProfileModal from "@/components/ProfileModal";
@@ -12,6 +13,7 @@ import SettingsModal from "@/components/SettingsModal";
 import AppTopBar from "@/components/AppTopBar";
 import ToastContainer from "@/components/ToastContainer";
 import { useRouter } from "next/navigation";
+import { useServers } from "@/lib/servers";
 import { Plus } from "lucide-react";
 import { User } from "@/lib/types";
 import { Toast, UserNotification } from "@/lib/notification-types";
@@ -30,6 +32,10 @@ export default function DMsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCreateServerModalOpen, setIsCreateServerModalOpen] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const { createServer, isLoading: isServerLoading, joinWithInvite } = useServers(token);
 
   // Notification state
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -180,7 +186,40 @@ export default function DMsPage() {
             router.push(`/servers/${serverId}/${server.channels[0].id}`);
           }
         }}
-        onCreateClick={() => {}}
+        onCreateClick={() => setIsCreateServerModalOpen(true)}
+      />
+      <CreateServerModal
+        isOpen={isCreateServerModalOpen}
+        isLoading={isServerLoading}
+        serverError={serverError}
+        onClose={() => {
+          setIsCreateServerModalOpen(false);
+          setServerError("");
+        }}
+        onCreate={async (name: string, description: string, icon?: string) => {
+          setServerError("");
+          const server = await createServer(name, description, icon);
+          if (server) {
+            setIsCreateServerModalOpen(false);
+            router.push(`/servers/${server.id}/${server.channels[0].id}`);
+            return server;
+          }
+          setServerError("Failed to create server");
+          return null;
+        }}
+        onJoinClick={async (inviteCode: string) => {
+          try {
+            const joined = await joinWithInvite(inviteCode);
+            if (joined) {
+              setIsCreateServerModalOpen(false);
+              router.push(`/servers/${joined.id}/${joined.channels[0].id}`);
+            } else {
+              setServerError("Failed to join server with invite");
+            }
+          } catch (err) {
+            setServerError(err instanceof Error ? err.message : "Failed to join server");
+          }
+        }}
       />
 
       {/* DM List sidebar */}
