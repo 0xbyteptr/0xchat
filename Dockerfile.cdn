@@ -1,0 +1,14 @@
+FROM node:20-bullseye-slim
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --production
+
+COPY cdn_server.js ./cdn_server.js
+
+EXPOSE 3003
+ENV CDN_PORT=3003
+CMD ["node", "cdn_server.js"]

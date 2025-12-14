@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 0xchat_app:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
+      - NEXT_PUBLIC_CDN_URL=http://cdn:3003
+      - CDN_ALLOWED_ORIGINS=${CDN_ALLOWED_ORIGINS:-http://localhost:3001}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - cdn
+    volumes:
+      - ./data:/app/data
+
+  cdn:
+    build:
+      context: .
+      dockerfile: Dockerfile.cdn
+    image: 0xchat_cdn:latest
+    environment:
+      - CDN_PORT=3003
+      - CDN_ALLOWED_ORIGINS=${CDN_ALLOWED_ORIGINS}
+      - CDN_HOST=cdn
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/app/data
+
+# Optional: add a reverse proxy (nginx) or handle TLS outside compose
