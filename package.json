@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "dev:cdn": "node cdn_server.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:cdn\"",
+    "dev:ws": "node ws-server.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:cdn\" \"npm run dev:ws\"",
     "build": "next build",
     "start": "next start",
     "start:cdn": "node cdn_server.js",
-    "start:all": "concurrently \"npm run start\" \"npm run start:cdn\"",
+    "start:ws": "node ws-server.js",
+    "start:all": "concurrently \"npm run start\" \"npm run start:cdn\" \"npm run start:ws\"",
     "lint": "eslint",
     "setup": "node scripts/setup.js"
   },
