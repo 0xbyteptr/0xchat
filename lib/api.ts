@@ -28,5 +28,12 @@ export function getApiBaseUrl(): string {
 export function getApiUrl(path: string): string {
   const base = getApiBaseUrl();
   if (!base) return path;
+  
+  // If path already contains /api/, just use it as-is (it's a full path)
+  if (path.includes("/api/")) {
+    return path;
+  }
+  
+  // Otherwise, append to base
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
